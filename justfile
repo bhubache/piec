@@ -13,3 +13,6 @@ lint:
   cargo fmt --all -- --check
   cargo clippy --version
   cargo clippy --workspace --all-targets --all-features --locked --all -- -D warnings
+
+pie:
+  racket -l pie -i
