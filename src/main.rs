@@ -1,3 +1,14 @@
+use std::env;
+
+use crate::compiler::Compiler;
+
+mod compiler;
+
+// TODO: Provide polished CLI via clap
 fn main() {
-    println!("Hello, world!");
+    let args: Vec<String> = env::args().collect();
+    let file_path = &args[1];
+
+    let compiler = Compiler::from_file(file_path).unwrap();
+    compiler.compile().unwrap();
 }
