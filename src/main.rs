@@ -3,6 +3,7 @@ use std::env;
 use crate::compiler::Compiler;
 
 mod compiler;
+mod lexer;
 
 // TODO: Provide polished CLI via clap
 fn main() {

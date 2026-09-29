@@ -1,6 +1,8 @@
 use std::fmt;
 use std::fs;
 
+use crate::lexer::Lexer;
+
 #[derive(Debug)]
 pub enum CompilerError {
     IoError(std::io::Error),
@@ -32,9 +34,8 @@ impl Compiler {
     }
 
     pub fn compile(&self) -> Result<(), CompilerError> {
-        for string in self.text.lines() {
-            println!("{}", string);
-        }
+        let mut lexer = Lexer::new(&self.text);
+        let _tokens = lexer.lex();
 
         Ok(())
     }
