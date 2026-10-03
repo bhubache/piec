@@ -33,7 +33,6 @@ pub enum TokenKind {
     Atom(String),
     Identifier(String),
     Keyword(Keyword),
-    Whitespace(String),
     Eof,
     Unknown,
 }
@@ -224,6 +223,8 @@ impl<'a> Lexer<'a> {
     }
 
     fn next_token(&mut self) -> Token {
+        self.eat_whitespace();
+
         let start_line = self.line;
         let start_column = self.column;
 
@@ -244,7 +245,6 @@ impl<'a> Lexer<'a> {
                 self.eat_while_true(|c| c.is_ascii_digit());
                 TokenKind::Literal(Literal::Nat(self.curr_token_to_be.parse().unwrap()))
             }
-            character if character.is_whitespace() => self.eat_whitespace(),
             character if self.is_valid_ident_start(character) => self.eat_identifier(),
             _ => TokenKind::Unknown,
         };
@@ -280,9 +280,9 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn eat_whitespace(&mut self) -> TokenKind {
+    fn eat_whitespace(&mut self) {
         self.eat_while_true(char::is_whitespace);
-        TokenKind::Whitespace(self.curr_token_to_be.clone())
+        self.curr_token_to_be.clear();
     }
 
     fn eat_identifier(&mut self) -> TokenKind {
@@ -405,16 +405,8 @@ mod tests {
                     Span::new(Position::new(0, 1), Position::new(0, 6)),
                 ),
                 Token::new(
-                    TokenKind::Whitespace(String::from(" ")),
-                    Span::new(Position::new(0, 6), Position::new(0, 7)),
-                ),
-                Token::new(
                     TokenKind::Identifier(String::from("foo")),
                     Span::new(Position::new(0, 7), Position::new(0, 10)),
-                ),
-                Token::new(
-                    TokenKind::Whitespace(String::from("\n  ")),
-                    Span::new(Position::new(0, 10), Position::new(1, 2)),
                 ),
                 Token::new(
                     TokenKind::OpenParen,
@@ -453,16 +445,8 @@ mod tests {
                     Span::new(Position::new(0, 1), Position::new(0, 4)),
                 ),
                 Token::new(
-                    TokenKind::Whitespace(String::from(" ")),
-                    Span::new(Position::new(0, 4), Position::new(0, 5)),
-                ),
-                Token::new(
                     TokenKind::Keyword(Keyword::Nat),
                     Span::new(Position::new(0, 5), Position::new(0, 8)),
-                ),
-                Token::new(
-                    TokenKind::Whitespace(String::from(" ")),
-                    Span::new(Position::new(0, 8), Position::new(0, 9)),
                 ),
                 Token::new(
                     TokenKind::Literal(Literal::Nat(1)),

@@ -135,7 +135,6 @@ mod tests {
     #[test]
     fn straightforward_the() {
         // (the Nat 1)
-        // FIXME: Should the lexer not track whitespace tokens?
         let mut parser = Parser::new(vec![
             Token::new(
                 TokenKind::OpenParen,
@@ -145,18 +144,10 @@ mod tests {
                 TokenKind::Keyword(Keyword::The),
                 Span::new(Position::new(0, 1), Position::new(0, 4)),
             ),
-            // Token::new(
-            //     TokenKind::Whitespace(String::from(" ")),
-            //     Span::new(Position::new(0, 4), Position::new(0, 5)),
-            // ),
             Token::new(
                 TokenKind::Keyword(Keyword::Nat),
                 Span::new(Position::new(0, 4), Position::new(0, 7)),
             ),
-            // Token::new(
-            //     TokenKind::Whitespace(String::from(" ")),
-            //     Span::new(Position::new(0, 8), Position::new(0, 9)),
-            // ),
             Token::new(
                 TokenKind::Literal(Literal::Nat(1)),
                 Span::new(Position::new(0, 7), Position::new(0, 8)),
