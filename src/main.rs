@@ -4,6 +4,7 @@ use crate::compiler::Compiler;
 
 mod compiler;
 mod lexer;
+mod parser;
 
 // TODO: Provide polished CLI via clap
 fn main() {

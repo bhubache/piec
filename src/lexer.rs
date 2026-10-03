@@ -3,11 +3,11 @@ use std::str::Chars;
 use crate::lexer::span::Position;
 use crate::lexer::span::Span;
 
-mod span;
+pub mod span;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
-    kind: TokenKind,
+    pub kind: TokenKind,
     span: Span,
 }
 
@@ -431,6 +431,46 @@ mod tests {
                 Token::new(
                     TokenKind::CloseParen,
                     Span::new(Position::new(1, 7), Position::new(1, 8)),
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn straightforward_the() {
+        let mut lex = Lexer::new("(the Nat 1)");
+        let tokens = lex.lex();
+
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(
+                    TokenKind::OpenParen,
+                    Span::new(Position::new(0, 0), Position::new(0, 1)),
+                ),
+                Token::new(
+                    TokenKind::Keyword(Keyword::The),
+                    Span::new(Position::new(0, 1), Position::new(0, 4)),
+                ),
+                Token::new(
+                    TokenKind::Whitespace(String::from(" ")),
+                    Span::new(Position::new(0, 4), Position::new(0, 5)),
+                ),
+                Token::new(
+                    TokenKind::Keyword(Keyword::Nat),
+                    Span::new(Position::new(0, 5), Position::new(0, 8)),
+                ),
+                Token::new(
+                    TokenKind::Whitespace(String::from(" ")),
+                    Span::new(Position::new(0, 8), Position::new(0, 9)),
+                ),
+                Token::new(
+                    TokenKind::Literal(Literal::Nat(1)),
+                    Span::new(Position::new(0, 9), Position::new(0, 10)),
+                ),
+                Token::new(
+                    TokenKind::CloseParen,
+                    Span::new(Position::new(0, 10), Position::new(0, 11)),
                 ),
             ]
         );
