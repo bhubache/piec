@@ -2,6 +2,7 @@ use std::fmt;
 use std::fs;
 
 use crate::lexer::Lexer;
+use crate::source::SourceFile;
 
 #[derive(Debug)]
 pub enum CompilerError {
@@ -23,22 +24,20 @@ impl From<std::io::Error> for CompilerError {
 }
 
 pub struct Compiler {
-    file_path: String,
-    text: String,
+    file: SourceFile,
 }
 
 impl Compiler {
     pub fn from_file(path: &str) -> Result<Self, CompilerError> {
-        let text = fs::read_to_string(path)?;
+        let source = fs::read_to_string(path)?;
 
-        Ok(Compiler {
-            text,
-            file_path: String::from(path),
+        Ok(Self {
+            file: SourceFile::new(path.to_string(), source),
         })
     }
 
     pub fn compile(&self) -> Result<(), CompilerError> {
-        let lexer = Lexer::new(&self.text, &self.file_path);
+        let lexer = Lexer::new(&self.file);
         let _tokens = match lexer.lex() {
             Ok(tokens) => tokens,
             Err(diagnostics) => {

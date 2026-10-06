@@ -6,14 +6,14 @@ use crate::lexer::token::Keyword;
 use crate::lexer::token::Literal;
 use crate::lexer::token::Token;
 use crate::lexer::token::TokenKind;
+use crate::source::SourceFile;
 use crate::span::Position;
 use crate::span::Span;
 
 pub mod token;
 
 pub struct Lexer<'a> {
-    file_path: &'a str,
-    source: &'a str,
+    file: &'a SourceFile,
     input: Chars<'a>,
     line: usize,
     column: usize,
@@ -22,11 +22,10 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str, file_path: &'a str) -> Self {
+    pub fn new(file: &'a SourceFile) -> Self {
         Lexer {
-            file_path,
-            source: input,
-            input: input.chars(),
+            file,
+            input: file.source.chars(),
             line: 0,
             column: 0,
             curr_token_to_be: String::new(),
@@ -99,13 +98,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn save_diagnostic(&mut self, message: &str, span: Span, annotations: Vec<Annotation>) {
-        let diag = Diagnostic::new(
-            self.file_path,
-            self.source,
-            message.to_string(),
-            span,
-            annotations,
-        );
+        let diag = Diagnostic::new(self.file, message.to_string(), span, annotations);
         self.diagnostics.push(diag);
     }
 
@@ -196,49 +189,53 @@ mod tests {
 
     use pretty_assertions::assert_eq;
 
+    fn lex_helper(source: &str, expected: Vec<Token>) {
+        let file = SourceFile::new("test_input".to_string(), source.to_string());
+        let lexer = Lexer::new(&file);
+        let observed = lexer.lex().unwrap();
+
+        assert_eq!(observed, expected);
+    }
+
+    fn lex_helper_neg(source: &str) {
+        let file = SourceFile::new("test_input".to_string(), source.to_string());
+        let lexer = Lexer::new(&file);
+
+        assert!(lexer.lex().is_err());
+    }
+
     #[test]
     fn open_paren() {
-        let lex = Lexer::new("(", "stdin");
-        let tokens = lex.lex().unwrap();
-
-        assert_eq!(
-            tokens,
+        lex_helper(
+            "(",
             vec![Token::new(
                 TokenKind::OpenParen,
                 Span::new(Position::new(0, 0), Position::new(0, 1)),
-            )]
+            )],
         );
     }
 
     #[test]
     fn invalid_token() {
-        let lex = Lexer::new("'", "stdin");
-
         // TODO: More precise test?
-        assert!(lex.lex().is_err())
+        lex_helper_neg("'");
     }
 
     #[test]
     fn list_cons() {
-        let lex = Lexer::new("::", "stdin");
-        let tokens = lex.lex().unwrap();
-
-        assert_eq!(
-            tokens,
+        lex_helper(
+            "::",
             vec![Token::new(
                 TokenKind::Keyword(Keyword::ListCons),
                 Span::new(Position::new(0, 0), Position::new(0, 2)),
-            )]
+            )],
         );
     }
 
     #[test]
     fn multiple_open_paren() {
-        let lex = Lexer::new("(((", "stdin");
-        let tokens = lex.lex().unwrap();
-
-        assert_eq!(
-            tokens,
+        lex_helper(
+            "(((",
             vec![
                 Token::new(
                     TokenKind::OpenParen,
@@ -251,18 +248,15 @@ mod tests {
                 Token::new(
                     TokenKind::OpenParen,
                     Span::new(Position::new(0, 2), Position::new(0, 3)),
-                )
-            ]
+                ),
+            ],
         );
     }
 
     #[test]
     fn claim_nat() {
-        let lex = Lexer::new("(claim foo\n  (Nat))", "stdin");
-        let tokens = lex.lex().unwrap();
-
-        assert_eq!(
-            tokens,
+        lex_helper(
+            "(claim foo\n  (Nat))",
             vec![
                 Token::new(
                     TokenKind::OpenParen,
@@ -292,17 +286,14 @@ mod tests {
                     TokenKind::CloseParen,
                     Span::new(Position::new(1, 7), Position::new(1, 8)),
                 ),
-            ]
+            ],
         );
     }
 
     #[test]
     fn straightforward_the() {
-        let lex = Lexer::new("(the Nat 1)", "stdin");
-        let tokens = lex.lex().unwrap();
-
-        assert_eq!(
-            tokens,
+        lex_helper(
+            "(the Nat 1)",
             vec![
                 Token::new(
                     TokenKind::OpenParen,
@@ -324,7 +315,7 @@ mod tests {
                     TokenKind::CloseParen,
                     Span::new(Position::new(0, 10), Position::new(0, 11)),
                 ),
-            ]
+            ],
         );
     }
 }

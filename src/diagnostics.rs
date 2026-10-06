@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+use crate::source::SourceFile;
 use crate::span::Span;
 
 use ariadne::Label;
@@ -12,8 +13,7 @@ use ariadne::Source;
 // - Level to support errors, warnings, and such
 #[derive(Debug)]
 pub struct Diagnostic<'a> {
-    file_path: &'a str,
-    source: &'a str,
+    file: &'a SourceFile,
     message: String,
     span: Span,
     annotations: Vec<Annotation>,
@@ -21,15 +21,13 @@ pub struct Diagnostic<'a> {
 
 impl<'a> Diagnostic<'a> {
     pub fn new(
-        file_path: &'a str,
-        source: &'a str,
+        file: &'a SourceFile,
         message: String,
         span: Span,
         annotations: Vec<Annotation>,
     ) -> Self {
         Self {
-            file_path,
-            source,
+            file,
             message,
             span,
             annotations,
@@ -37,16 +35,23 @@ impl<'a> Diagnostic<'a> {
     }
 
     pub fn report(&self) {
-        let mut report = Report::build(ReportKind::Error, (self.file_path, Range::from(self.span)))
-            .with_message(&self.message);
+        let mut report = Report::build(
+            ReportKind::Error,
+            (self.file.file_path.clone(), Range::from(self.span)),
+        )
+        .with_message(&self.message);
         for ann in self.annotations.iter() {
             report = report.with_label(
-                Label::new((self.file_path, Range::from(ann.span))).with_message(ann.message),
+                Label::new((self.file.file_path.clone(), Range::from(ann.span)))
+                    .with_message(ann.message),
             )
         }
         report
             .finish()
-            .eprint((self.file_path, Source::from(self.source)))
+            .eprint((
+                self.file.file_path.clone(),
+                Source::from(self.file.source.clone()),
+            ))
             .unwrap();
     }
 }
