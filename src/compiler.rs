@@ -23,6 +23,7 @@ impl From<std::io::Error> for CompilerError {
 }
 
 pub struct Compiler {
+    file_path: String,
     text: String,
 }
 
@@ -30,12 +31,24 @@ impl Compiler {
     pub fn from_file(path: &str) -> Result<Self, CompilerError> {
         let text = fs::read_to_string(path)?;
 
-        Ok(Compiler { text })
+        Ok(Compiler {
+            text,
+            file_path: String::from(path),
+        })
     }
 
     pub fn compile(&self) -> Result<(), CompilerError> {
-        let mut lexer = Lexer::new(&self.text);
-        let _tokens = lexer.lex();
+        let lexer = Lexer::new(&self.text, &self.file_path);
+        let _tokens = match lexer.lex() {
+            Ok(tokens) => tokens,
+            Err(diagnostics) => {
+                for diag in diagnostics.iter() {
+                    diag.report();
+                }
+
+                panic!("unable to lex due to {} above error(s)", diagnostics.len());
+            }
+        };
 
         Ok(())
     }

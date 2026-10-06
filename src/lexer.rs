@@ -1,5 +1,7 @@
 use std::str::Chars;
 
+use crate::diagnostics::Annotation;
+use crate::diagnostics::Diagnostic;
 use crate::lexer::span::Position;
 use crate::lexer::span::Span;
 
@@ -190,23 +192,29 @@ impl Keyword {
 }
 
 pub struct Lexer<'a> {
+    file_path: &'a str,
+    source: &'a str,
     input: Chars<'a>,
     line: usize,
     column: usize,
     curr_token_to_be: String,
+    diagnostics: Vec<Diagnostic<'a>>,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Self {
+    pub fn new(input: &'a str, file_path: &'a str) -> Self {
         Lexer {
+            file_path,
+            source: input,
             input: input.chars(),
             line: 0,
             column: 0,
             curr_token_to_be: String::new(),
+            diagnostics: Vec::new(),
         }
     }
 
-    pub fn lex(&mut self) -> Vec<Token> {
+    pub fn lex(mut self) -> Result<Vec<Token>, Vec<Diagnostic<'a>>> {
         let mut tokens = Vec::new();
 
         loop {
@@ -215,11 +223,19 @@ impl<'a> Lexer<'a> {
                     kind: TokenKind::Eof,
                     ..
                 } => break,
+                Token {
+                    kind: TokenKind::Unknown,
+                    ..
+                } => continue,
                 tok => tokens.push(tok),
             }
         }
 
-        tokens
+        if !self.diagnostics.is_empty() {
+            Err(self.diagnostics)
+        } else {
+            Ok(tokens)
+        }
     }
 
     fn next_token(&mut self) -> Token {
@@ -236,11 +252,19 @@ impl<'a> Lexer<'a> {
             '(' => TokenKind::OpenParen,
             ')' => TokenKind::CloseParen,
             ',' => TokenKind::Comma,
-            '\'' => {
-                self.eat_while_true(|c| c.is_alphabetic() || c == '-');
-
-                TokenKind::Atom(self.curr_token_to_be.clone())
-            }
+            '\'' => match self.eat_while_true(|c| c.is_alphabetic() || c == '-') {
+                true => TokenKind::Atom(self.curr_token_to_be.clone()),
+                false => {
+                    self.save_diagnostic(
+                        "lone `'`",
+                        self.curr_token_span(start_line, start_column),
+                        vec![
+                            Annotation::new(self.curr_token_span(start_line, start_column), "expected one or more alphabetic characters and/or hyphens to follow this"),
+                        ],
+                    );
+                    TokenKind::Unknown
+                }
+            },
             '0'..='9' => {
                 self.eat_while_true(|c| c.is_ascii_digit());
                 TokenKind::Literal(Literal::Nat(self.curr_token_to_be.parse().unwrap()))
@@ -251,12 +275,24 @@ impl<'a> Lexer<'a> {
 
         self.curr_token_to_be.clear();
 
-        Token::new(
-            token_kind,
-            Span::new(
-                Position::new(start_line, start_column),
-                Position::new(self.line, self.column),
-            ),
+        Token::new(token_kind, self.curr_token_span(start_line, start_column))
+    }
+
+    fn save_diagnostic(&mut self, message: &str, span: Span, annotations: Vec<Annotation>) {
+        let diag = Diagnostic::new(
+            self.file_path,
+            self.source,
+            message.to_string(),
+            span,
+            annotations,
+        );
+        self.diagnostics.push(diag);
+    }
+
+    fn curr_token_span(&self, start_line: usize, start_column: usize) -> Span {
+        Span::new(
+            Position::new(start_line, start_column),
+            Position::new(self.line, self.column),
         )
     }
 
@@ -274,10 +310,14 @@ impl<'a> Lexer<'a> {
         Some(next)
     }
 
-    fn eat_while_true(&mut self, predicate: fn(char) -> bool) {
+    fn eat_while_true(&mut self, predicate: fn(char) -> bool) -> bool {
+        let mut consumed_at_least_on_char = false;
         while self.peek_first().is_some() && predicate(self.peek_first().unwrap()) {
+            consumed_at_least_on_char = true;
             self.step();
         }
+
+        consumed_at_least_on_char
     }
 
     fn eat_whitespace(&mut self) {
@@ -338,8 +378,8 @@ mod tests {
 
     #[test]
     fn open_paren() {
-        let mut lex = Lexer::new("(");
-        let tokens = lex.lex();
+        let lex = Lexer::new("(", "stdin");
+        let tokens = lex.lex().unwrap();
 
         assert_eq!(
             tokens,
@@ -351,9 +391,17 @@ mod tests {
     }
 
     #[test]
+    fn invalid_token() {
+        let lex = Lexer::new("'", "stdin");
+
+        // TODO: More precise test?
+        assert!(lex.lex().is_err())
+    }
+
+    #[test]
     fn list_cons() {
-        let mut lex = Lexer::new("::");
-        let tokens = lex.lex();
+        let lex = Lexer::new("::", "stdin");
+        let tokens = lex.lex().unwrap();
 
         assert_eq!(
             tokens,
@@ -366,8 +414,8 @@ mod tests {
 
     #[test]
     fn multiple_open_paren() {
-        let mut lex = Lexer::new("(((");
-        let tokens = lex.lex();
+        let lex = Lexer::new("(((", "stdin");
+        let tokens = lex.lex().unwrap();
 
         assert_eq!(
             tokens,
@@ -390,8 +438,8 @@ mod tests {
 
     #[test]
     fn claim_nat() {
-        let mut lex = Lexer::new("(claim foo\n  (Nat))");
-        let tokens = lex.lex();
+        let lex = Lexer::new("(claim foo\n  (Nat))", "stdin");
+        let tokens = lex.lex().unwrap();
 
         assert_eq!(
             tokens,
@@ -430,8 +478,8 @@ mod tests {
 
     #[test]
     fn straightforward_the() {
-        let mut lex = Lexer::new("(the Nat 1)");
-        let tokens = lex.lex();
+        let lex = Lexer::new("(the Nat 1)", "stdin");
+        let tokens = lex.lex().unwrap();
 
         assert_eq!(
             tokens,

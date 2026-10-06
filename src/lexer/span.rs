@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, PartialEq)]
+use std::ops::Range;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Span {
     start: Position,
     end: Position,
@@ -17,7 +19,16 @@ impl Span {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl From<Span> for Range<usize> {
+    fn from(value: Span) -> Self {
+        Self {
+            start: value.start.column,
+            end: value.end.column,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Position {
     line: usize,
     column: usize,

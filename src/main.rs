@@ -3,6 +3,7 @@ use std::env;
 use crate::compiler::Compiler;
 
 mod compiler;
+mod diagnostics;
 mod lexer;
 mod parser;
 
