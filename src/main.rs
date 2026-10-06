@@ -1,11 +1,6 @@
 use std::env;
 
-use crate::compiler::Compiler;
-
-mod compiler;
-mod diagnostics;
-mod lexer;
-mod parser;
+use piec::Compiler;
 
 // TODO: Provide polished CLI via clap
 fn main() {

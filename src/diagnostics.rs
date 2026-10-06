@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::lexer::span::Span;
+use crate::span::Span;
 
 use ariadne::Label;
 use ariadne::Report;

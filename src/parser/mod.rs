@@ -1,7 +1,7 @@
-use crate::lexer;
-use crate::lexer::Keyword;
-use crate::lexer::Token;
-use crate::lexer::TokenKind;
+use crate::lexer::token::Keyword;
+use crate::lexer::token::Literal;
+use crate::lexer::token::Token;
+use crate::lexer::token::TokenKind;
 
 mod ast;
 
@@ -75,7 +75,7 @@ impl Parser {
     // 3. Expression that can be evaluated to number 2
     fn parse_value(&mut self) -> Result<ast::Value, ParseError> {
         let value = match self.tokens[self.curr_index].kind {
-            TokenKind::Literal(lexer::Literal::Nat(nat)) => {
+            TokenKind::Literal(Literal::Nat(nat)) => {
                 self.step();
                 let nat_cons_expr = if nat == 0 {
                     ast::NatConstructorExpr::Zero
@@ -126,9 +126,8 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::span::{Position, Span};
-    use crate::lexer::{Keyword, Literal, Token, TokenKind};
     use crate::parser::ast::{self, Expression, ExpressionKind, Program, Type};
+    use crate::span::{Position, Span};
 
     use pretty_assertions::assert_eq;
 
