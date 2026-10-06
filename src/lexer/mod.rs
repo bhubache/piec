@@ -97,8 +97,8 @@ impl<'a> Lexer<'a> {
         Token::new(token_kind, self.curr_token_span(start_line, start_column))
     }
 
-    fn save_diagnostic(&mut self, message: &str, span: Span, annotations: Vec<Annotation>) {
-        let diag = Diagnostic::new(self.file, message.to_string(), span, annotations);
+    fn save_diagnostic(&mut self, message: &'a str, span: Span, annotations: Vec<Annotation>) {
+        let diag = Diagnostic::new(self.file, message, span, annotations);
         self.diagnostics.push(diag);
     }
 
