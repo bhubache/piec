@@ -8,3 +8,4 @@ ariadne = "0.6.0"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
+proptest = "1.11.0"
