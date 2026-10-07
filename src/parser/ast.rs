@@ -41,6 +41,7 @@ pub enum Type {
     Vec(Box<Type>, NatConstructorExpr),
     Either(Box<Type>, Box<Type>),
     Pi, // TODO: What does this take in?
+    Error,
 }
 
 #[derive(Debug, PartialEq)]
