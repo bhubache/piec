@@ -1,7 +1,50 @@
-// TODO: Learn how to thoroughly test this
 use super::*;
+use strum::IntoEnumIterator;
 
 use pretty_assertions::assert_eq;
+use proptest::prelude::*;
+
+fn arb_token_kind() -> impl Strategy<Value = token::TokenKind> {
+    prop_oneof![
+        Just(TokenKind::OpenParen),
+        Just(TokenKind::CloseParen),
+        Just(TokenKind::Comma),
+        r"'[a-zA-Z\-]+".prop_map(TokenKind::Atom),
+        // TODO: Accept more
+        r"[a-zA-Z][a-zA-Z0-9]*"
+            .prop_map(TokenKind::Identifier)
+            .prop_filter("must not be a keyword", |ident| token::Keyword::try_from(
+                ident.to_string()
+            )
+            .is_err()),
+        arb_keyword().prop_map(TokenKind::Keyword),
+        arb_literal().prop_map(TokenKind::Literal),
+    ]
+}
+
+fn arb_keyword() -> impl Strategy<Value = token::Keyword> {
+    let keywords: Vec<token::Keyword> = token::Keyword::iter().collect();
+    proptest::sample::select(keywords)
+}
+
+fn arb_literal() -> impl Strategy<Value = token::Literal> {
+    let literals: Vec<token::Literal> = token::Literal::iter().collect();
+    proptest::sample::select(literals)
+}
+
+proptest! {
+    #[test]
+    fn property_based(token_kinds in prop::collection::vec(arb_token_kind(), 1..1000)) {
+        let token_strings: Vec<String> = token_kinds.iter().map(|tok| format!("{}", tok)).collect();
+        let file = SourceFile::new("test_input".to_string(), token_strings.join(" "));
+        let lexer = Lexer::new(&file);
+        let observed = lexer.lex().unwrap();
+
+        let observed_kinds: Vec<TokenKind> = observed.into_iter().map(|tok| tok.kind).collect();
+
+        assert_eq!(observed_kinds, token_kinds);
+    }
+}
 
 fn lex_helper(source: &str, expected: Vec<Token>) {
     let file = SourceFile::new("test_input".to_string(), source.to_string());
@@ -19,52 +62,9 @@ fn lex_helper_neg(source: &str) {
 }
 
 #[test]
-fn open_paren() {
-    lex_helper(
-        "(",
-        vec![Token::new(
-            TokenKind::OpenParen,
-            Span::new(Position::new(0, 0), Position::new(0, 1)),
-        )],
-    );
-}
-
-#[test]
 fn invalid_token() {
     // TODO: More precise test?
     lex_helper_neg("'");
-}
-
-#[test]
-fn list_cons() {
-    lex_helper(
-        "::",
-        vec![Token::new(
-            TokenKind::Keyword(Keyword::ListCons),
-            Span::new(Position::new(0, 0), Position::new(0, 2)),
-        )],
-    );
-}
-
-#[test]
-fn multiple_open_paren() {
-    lex_helper(
-        "(((",
-        vec![
-            Token::new(
-                TokenKind::OpenParen,
-                Span::new(Position::new(0, 0), Position::new(0, 1)),
-            ),
-            Token::new(
-                TokenKind::OpenParen,
-                Span::new(Position::new(0, 1), Position::new(0, 2)),
-            ),
-            Token::new(
-                TokenKind::OpenParen,
-                Span::new(Position::new(0, 2), Position::new(0, 3)),
-            ),
-        ],
-    );
 }
 
 #[test]

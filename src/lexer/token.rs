@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::span::Span;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -32,11 +34,43 @@ pub enum TokenKind {
     Unknown,
 }
 
+impl From<TokenKind> for String {
+    fn from(value: TokenKind) -> Self {
+        format!("{}", value)
+    }
+}
+
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::OpenParen => write!(f, "("),
+            Self::CloseParen => write!(f, ")"),
+            Self::Comma => write!(f, ","),
+            Self::Literal(lit) => write!(f, "{}", lit),
+            Self::Atom(atom) => write!(f, "{}", atom),
+            Self::Identifier(ident) => write!(f, "{}", ident),
+            Self::Keyword(keyword) => write!(f, "{}", keyword),
+            Self::Eof => write!(f, ""),
+            Self::Unknown => write!(f, "UNKNOWN_TOKEN_KIND"),
+        }
+    }
+}
+
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     Nat(u32),
 }
 
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Nat(nat) => write!(f, "{}", nat),
+        }
+    }
+}
+
+#[cfg_attr(test, derive(strum_macros::EnumIter))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Keyword {
     /// `Π` - 0x3A0
@@ -118,9 +152,82 @@ pub enum Keyword {
     Zero,
 }
 
-impl Keyword {
-    pub fn new(string: &str) -> Option<Self> {
-        let keyword = match string {
+impl fmt::Display for Keyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", String::from(self))
+    }
+}
+
+impl From<&Keyword> for String {
+    fn from(value: &Keyword) -> Self {
+        let string = match value {
+            Keyword::GreekCapitalLetterPi => "Π",
+            Keyword::NaryProduct => "∏",
+            Keyword::RightwardsArrow => "→",
+            Keyword::WideRightwardsArrow => "->",
+            Keyword::LambdaSymbol => "λ",
+            Keyword::SigmaSymbol => "Σ",
+            Keyword::ListCons => "::",
+            Keyword::Absurd => "Absurd",
+            Keyword::Atom => "Atom",
+            Keyword::Either => "Either",
+            Keyword::Eq => "=",
+            Keyword::List => "List",
+            Keyword::Nat => "Nat",
+            Keyword::Pair => "Pair",
+            Keyword::Pi => "Pi",
+            Keyword::Sigma => "Sigma",
+            Keyword::Todo => "TODO",
+            Keyword::Trivial => "Trivial",
+            Keyword::Universe => "U",
+            Keyword::Vec => "Vec",
+            Keyword::Add1 => "add1",
+            Keyword::Car => "car",
+            Keyword::Cdr => "cdr",
+            Keyword::CheckSame => "check-same",
+            Keyword::Claim => "claim",
+            Keyword::Cong => "cong",
+            Keyword::Cons => "cons",
+            Keyword::Define => "define",
+            Keyword::DefineMultiplePieKw => "define-pie-keywords",
+            Keyword::DefinePieKw => "define-pie-keyword",
+            Keyword::Head => "head",
+            Keyword::IndEquals => "ind-=",
+            Keyword::IndAbsurd => "ind-Absurd",
+            Keyword::IndEither => "ind-Either",
+            Keyword::IndList => "ind-List",
+            Keyword::IndNat => "ind-Nat",
+            Keyword::IndVec => "ind-Vec",
+            Keyword::IterNat => "iter-Nat",
+            Keyword::Lambda => "lambda",
+            Keyword::Left => "left",
+            Keyword::Nil => "nil",
+            Keyword::Quote => "quote",
+            Keyword::RecList => "rec-List",
+            Keyword::RecNat => "rec-Nat",
+            Keyword::Replace => "replace",
+            Keyword::Right => "right",
+            Keyword::Same => "same",
+            Keyword::Sole => "sole",
+            Keyword::Symm => "symm",
+            Keyword::Tail => "tail",
+            Keyword::The => "the",
+            Keyword::Trans => "trans",
+            Keyword::VecCons => "vec::",
+            Keyword::VecNil => "vecnil",
+            Keyword::WhichNat => "which-Nat",
+            Keyword::Zero => "zero",
+        };
+
+        String::from(string)
+    }
+}
+
+impl TryFrom<String> for Keyword {
+    type Error = ();
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let keyword = match value.as_str() {
             "Π" => Self::GreekCapitalLetterPi,
             "∏" => Self::NaryProduct,
             "→" => Self::RightwardsArrow,
@@ -177,9 +284,9 @@ impl Keyword {
             "vecnil" => Self::VecNil,
             "which-Nat" => Self::WhichNat,
             "zero" => Self::Zero,
-            _ => return None,
+            _ => return Err(()),
         };
 
-        Some(keyword)
+        Ok(keyword)
     }
 }

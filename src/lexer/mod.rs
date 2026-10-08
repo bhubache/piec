@@ -143,9 +143,10 @@ impl<'a> Lexer<'a> {
 
     fn eat_identifier(&mut self) -> TokenKind {
         self.eat_while_true(is_valid_ident_continued);
-        match Keyword::new(&self.curr_token_to_be) {
-            Some(keyword) => TokenKind::Keyword(keyword),
-            None => TokenKind::Identifier(self.curr_token_to_be.clone()),
+
+        match Keyword::try_from(self.curr_token_to_be.clone()) {
+            Ok(keyword) => TokenKind::Keyword(keyword),
+            Err(_) => TokenKind::Identifier(self.curr_token_to_be.clone()),
         }
     }
 
