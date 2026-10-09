@@ -144,6 +144,8 @@ impl<'a> Lexer<'a> {
     fn eat_identifier(&mut self) -> TokenKind {
         self.eat_while_true(is_valid_ident_continued);
 
+        // FIXME: At this point the token should be an ident delimiter
+
         match Keyword::try_from(self.curr_token_to_be.clone()) {
             Ok(keyword) => TokenKind::Keyword(keyword),
             Err(_) => TokenKind::Identifier(self.curr_token_to_be.clone()),
@@ -154,7 +156,11 @@ impl<'a> Lexer<'a> {
         self.input.clone().next()
     }
 
-    fn is_valid_ident_start(&self, character: char) -> bool {
+    fn at_eof(&self) -> bool {
+        self.input.as_str().is_empty()
+    }
+
+    fn is_valid_ident_start(&mut self, character: char) -> bool {
         // TODO: The official pie implementation supports some interesting identifiers.
         // Below is how pie officially defines identifiers.
         //
@@ -171,7 +177,31 @@ impl<'a> Lexer<'a> {
         // Identifiers of the following form are not yet supported:
         //     - Those defined by identifier-escapes
         //     - Those starting with `#%`
-        !is_ident_delimiter(character) && !matches!(character, '\\' | '|' | '#')
+        if self.is_ident_escape(character) {
+            true
+        } else {
+            !is_ident_delimiter(character) && !matches!(character, '\\' | '|' | '#')
+        }
+    }
+
+    fn is_ident_escape(&mut self, character: char) -> bool {
+        if character == '\\' {
+            if self.at_eof() {
+                false
+            } else {
+                self.step();
+                true
+            }
+        } else if character == '|' {
+            todo!()
+        } else if character == '#' {
+            match self.peek_first() {
+                Some(ch) => ch == '%',
+                None => false,
+            }
+        } else {
+            false
+        }
     }
 }
 

@@ -57,8 +57,9 @@ fn lex_helper(source: &str, expected: Vec<Token>) {
 fn lex_helper_neg(source: &str) {
     let file = SourceFile::new("test_input".to_string(), source.to_string());
     let lexer = Lexer::new(&file);
+    let maybe_tokens = lexer.lex();
 
-    assert!(lexer.lex().is_err());
+    assert!(maybe_tokens.is_err());
 }
 
 #[test]
@@ -132,3 +133,38 @@ fn straightforward_the() {
         ],
     );
 }
+
+#[test]
+fn ident_starting_with_backslash() {
+    lex_helper(
+        r"\'d",
+        vec![Token::new(
+            TokenKind::Identifier(String::from(r"\'d")),
+            Span::new(Position::new(0, 0), Position::new(0, 3)),
+        )],
+    );
+}
+
+#[test]
+fn ident_starting_pound_percent() {
+    lex_helper(
+        r"#%foo",
+        vec![Token::new(
+            TokenKind::Identifier(String::from(r"#%foo")),
+            Span::new(Position::new(0, 0), Position::new(0, 5)),
+        )],
+    );
+}
+
+// #[test]
+// fn ident_with_internal_whitespace() {
+//     lex_helper(
+//         r"h\ d",
+//         vec![
+//             Token::new(
+//                 TokenKind::Identifier(String::from(r"h\ d")),
+//                 Span::new(Position::new(0, 0), Position::new(0, 4)),
+//             ),
+//         ],
+//     );
+// }
