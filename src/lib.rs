@@ -1,3 +1,5 @@
+#![feature(stmt_expr_attributes)]
+
 mod compiler;
 pub use compiler::Compiler;
 mod diagnostics;

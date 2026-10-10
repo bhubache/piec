@@ -84,7 +84,7 @@ impl<'a> Lexer<'a> {
                     self.save_diagnostic(
                         "lone `'`",
                         vec![
-                            Annotation::new(self.curr_token_span(), "expected one or more alphabetic characters and/or hyphens to follow this"),
+                            Annotation::new(self.curr_token_span(), "expected one or more alphabetic characters and/or hyphens to follow this to produce an Atom"),
                         ],
                     );
                     TokenKind::Unknown

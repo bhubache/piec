@@ -1,4 +1,7 @@
+use std::io::Read;
+
 use super::*;
+use gag::BufferRedirect;
 use strum::IntoEnumIterator;
 
 use pretty_assertions::assert_eq;
@@ -54,18 +57,45 @@ fn lex_helper(source: &str, expected: Vec<Token>) {
     assert_eq!(observed, expected);
 }
 
-fn lex_helper_neg(source: &str) {
+fn lex_helper_neg(source: &str, expected_diag_msgs: &str) {
     let file = SourceFile::new("test_input".to_string(), source.to_string());
     let lexer = Lexer::new(&file);
     let maybe_tokens = lexer.lex();
 
-    assert!(maybe_tokens.is_err());
+    match maybe_tokens {
+        Ok(tokens) => panic!("String lexed when it should not have: {:?}", tokens),
+        Err(diagnostics) => {
+            let mut buf = BufferRedirect::stderr().unwrap();
+            for diag in diagnostics.iter() {
+                diag.report();
+            }
+
+            let mut output = String::new();
+            buf.read_to_string(&mut output).unwrap();
+
+            assert_eq!(
+                strip_ansi_escapes::strip_str(&output[..]),
+                expected_diag_msgs
+            );
+        }
+    }
 }
 
 #[test]
 fn invalid_token() {
-    // TODO: More precise test?
-    lex_helper_neg("'");
+    lex_helper_neg(
+        "'",
+        #[rustfmt::skip]
+        "\
+Error: lone `'`
+   ╭─[ test_input:1:1 ]
+   │
+ 1 │ '
+   │ ┬  
+   │ ╰── expected one or more alphabetic characters and/or hyphens to follow this to produce an Atom
+───╯
+",
+    );
 }
 
 #[test]
@@ -155,16 +185,3 @@ fn ident_starting_pound_percent() {
         )],
     );
 }
-
-// #[test]
-// fn ident_with_internal_whitespace() {
-//     lex_helper(
-//         r"h\ d",
-//         vec![
-//             Token::new(
-//                 TokenKind::Identifier(String::from(r"h\ d")),
-//                 Span::new(Position::new(0, 0), Position::new(0, 4)),
-//             ),
-//         ],
-//     );
-// }
