@@ -40,21 +40,14 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    // Possible next_token return scenarios other than normal token:
+    // - first character is EOF
+    // - reach EOF while lexing for ident that must be more than one character
     pub fn lex(mut self) -> Result<Vec<Token>, Vec<Diagnostic<'a>>> {
         let mut tokens = Vec::new();
 
-        loop {
-            match self.next_token() {
-                Token {
-                    kind: TokenKind::Eof,
-                    ..
-                } => break,
-                Token {
-                    kind: TokenKind::Unknown,
-                    ..
-                } => continue,
-                tok => tokens.push(tok),
-            }
+        while let Some(tok) = self.next_token() {
+            tokens.push(tok);
         }
 
         if !self.diagnostics.is_empty() {
@@ -64,15 +57,13 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Token {
+    fn next_token(&mut self) -> Option<Token> {
         self.eat_whitespace();
 
         self.start_line = self.line;
         self.start_column = self.column;
 
-        let Some(first_char) = self.step() else {
-            return Token::new(TokenKind::Eof, Span::empty());
-        };
+        let first_char = self.step()?;
 
         let token_kind = match first_char {
             '(' => TokenKind::OpenParen,
@@ -87,7 +78,7 @@ impl<'a> Lexer<'a> {
                             Annotation::new(self.curr_token_span(), "expected one or more alphabetic characters and/or hyphens to follow this to produce an Atom"),
                         ],
                     );
-                    TokenKind::Unknown
+                    return None;
                 }
             },
             '0'..='9' => {
@@ -95,15 +86,21 @@ impl<'a> Lexer<'a> {
                 TokenKind::Literal(Literal::Nat(self.curr_token_to_be.parse().unwrap()))
             }
             character if self.is_valid_ident_start(character) => self.eat_identifier(),
-            _ => TokenKind::Unknown,
+            character => {
+                self.save_diagnostic(
+                    format!("unknown start of token encountered: `{}`", character),
+                    vec![],
+                );
+                return None;
+            }
         };
 
         self.curr_token_to_be.clear();
 
-        Token::new(token_kind, self.curr_token_span())
+        Some(Token::new(token_kind, self.curr_token_span()))
     }
 
-    fn save_diagnostic(&mut self, message: &'a str, annotations: Vec<Annotation>) {
+    fn save_diagnostic(&mut self, message: impl Into<String>, annotations: Vec<Annotation>) {
         let diag = Diagnostic::new(self.file, message, self.curr_token_span(), annotations);
         self.diagnostics.push(diag);
     }

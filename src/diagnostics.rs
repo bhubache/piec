@@ -14,7 +14,7 @@ use ariadne::Source;
 #[derive(Debug)]
 pub struct Diagnostic<'a> {
     file: &'a SourceFile,
-    message: &'a str,
+    message: String,
     span: Span,
     annotations: Vec<Annotation>,
 }
@@ -22,13 +22,13 @@ pub struct Diagnostic<'a> {
 impl<'a> Diagnostic<'a> {
     pub fn new(
         file: &'a SourceFile,
-        message: &'a str,
+        message: impl Into<String>,
         span: Span,
         annotations: Vec<Annotation>,
     ) -> Self {
         Self {
             file,
-            message,
+            message: message.into(),
             span,
             annotations,
         }
@@ -39,7 +39,7 @@ impl<'a> Diagnostic<'a> {
             ReportKind::Error,
             (self.file.file_path.clone(), Range::from(self.span)),
         )
-        .with_message(self.message);
+        .with_message(self.message.clone());
         for ann in self.annotations.iter() {
             report = report.with_label(
                 Label::new((self.file.file_path.clone(), Range::from(ann.span)))

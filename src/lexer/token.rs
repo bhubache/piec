@@ -30,8 +30,6 @@ pub enum TokenKind {
     Atom(String),
     Identifier(String),
     Keyword(Keyword),
-    Eof,
-    Unknown,
 }
 
 impl From<TokenKind> for String {
@@ -50,8 +48,6 @@ impl fmt::Display for TokenKind {
             Self::Atom(atom) => write!(f, "{}", atom),
             Self::Identifier(ident) => write!(f, "{}", ident),
             Self::Keyword(keyword) => write!(f, "{}", keyword),
-            Self::Eof => write!(f, ""),
-            Self::Unknown => write!(f, "UNKNOWN_TOKEN_KIND"),
         }
     }
 }
