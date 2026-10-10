@@ -18,6 +18,8 @@ mod tests;
 pub struct Lexer<'a> {
     file: &'a SourceFile,
     input: Chars<'a>,
+    start_line: usize,
+    start_column: usize,
     line: usize,
     column: usize,
     curr_token_to_be: String,
@@ -29,6 +31,8 @@ impl<'a> Lexer<'a> {
         Lexer {
             file,
             input: file.source.chars(),
+            start_line: 0,
+            start_column: 0,
             line: 0,
             column: 0,
             curr_token_to_be: String::new(),
@@ -63,8 +67,8 @@ impl<'a> Lexer<'a> {
     fn next_token(&mut self) -> Token {
         self.eat_whitespace();
 
-        let start_line = self.line;
-        let start_column = self.column;
+        self.start_line = self.line;
+        self.start_column = self.column;
 
         let Some(first_char) = self.step() else {
             return Token::new(TokenKind::Eof, Span::empty());
@@ -79,9 +83,8 @@ impl<'a> Lexer<'a> {
                 false => {
                     self.save_diagnostic(
                         "lone `'`",
-                        self.curr_token_span(start_line, start_column),
                         vec![
-                            Annotation::new(self.curr_token_span(start_line, start_column), "expected one or more alphabetic characters and/or hyphens to follow this"),
+                            Annotation::new(self.curr_token_span(), "expected one or more alphabetic characters and/or hyphens to follow this"),
                         ],
                     );
                     TokenKind::Unknown
@@ -97,17 +100,17 @@ impl<'a> Lexer<'a> {
 
         self.curr_token_to_be.clear();
 
-        Token::new(token_kind, self.curr_token_span(start_line, start_column))
+        Token::new(token_kind, self.curr_token_span())
     }
 
-    fn save_diagnostic(&mut self, message: &'a str, span: Span, annotations: Vec<Annotation>) {
-        let diag = Diagnostic::new(self.file, message, span, annotations);
+    fn save_diagnostic(&mut self, message: &'a str, annotations: Vec<Annotation>) {
+        let diag = Diagnostic::new(self.file, message, self.curr_token_span(), annotations);
         self.diagnostics.push(diag);
     }
 
-    fn curr_token_span(&self, start_line: usize, start_column: usize) -> Span {
+    fn curr_token_span(&self) -> Span {
         Span::new(
-            Position::new(start_line, start_column),
+            Position::new(self.start_line, self.start_column),
             Position::new(self.line, self.column),
         )
     }
