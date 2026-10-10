@@ -82,7 +82,7 @@ fn lex_helper_neg(source: &str, expected_diag_msgs: &str) {
 }
 
 #[test]
-fn invalid_token() {
+fn lone_quote() {
     lex_helper_neg(
         "'",
         #[rustfmt::skip]
