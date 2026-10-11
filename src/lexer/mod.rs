@@ -7,7 +7,6 @@ use crate::lexer::token::Literal;
 use crate::lexer::token::Token;
 use crate::lexer::token::TokenKind;
 use crate::source::SourceFile;
-use crate::span::Position;
 use crate::span::Span;
 
 pub mod token;
@@ -18,10 +17,8 @@ mod tests;
 pub struct Lexer<'a> {
     file: &'a SourceFile,
     input: Chars<'a>,
-    start_line: usize,
-    start_column: usize,
-    line: usize,
-    column: usize,
+    start_byte_offset: usize,
+    curr_byte_offset: usize,
     curr_lexeme: String,
     diagnostics: Vec<Diagnostic<'a>>,
 }
@@ -31,10 +28,8 @@ impl<'a> Lexer<'a> {
         Lexer {
             file,
             input: file.source.chars(),
-            start_line: 0,
-            start_column: 0,
-            line: 0,
-            column: 0,
+            start_byte_offset: 0,
+            curr_byte_offset: 0,
             curr_lexeme: String::new(),
             diagnostics: Vec::new(),
         }
@@ -57,8 +52,7 @@ impl<'a> Lexer<'a> {
     fn next_token(&mut self) -> Option<Token> {
         self.eat_whitespace();
 
-        self.start_line = self.line;
-        self.start_column = self.column;
+        self.start_byte_offset = self.curr_byte_offset;
 
         let first_char = self.step()?;
 
@@ -109,8 +103,8 @@ impl<'a> Lexer<'a> {
                                     self.step();
                                 } else {
                                     let mut span = self.curr_token_span();
-                                    span.start.column += 1;
-                                    span.end.column += 1;
+                                    span.start += 1;
+                                    span.end += 1;
                                     self.save_diagnostic(
                                         format!("Unexpected character `{}` following `#`", next_char),
                                         vec![Annotation::new(span, "expected this character to be `%`, indicating an identifier or the start of an identifier")],
@@ -204,22 +198,14 @@ impl<'a> Lexer<'a> {
     }
 
     fn curr_token_span(&self) -> Span {
-        Span::new(
-            Position::new(self.start_line, self.start_column),
-            Position::new(self.line, self.column),
-        )
+        Span::new(self.start_byte_offset, self.curr_byte_offset)
     }
 
     fn step(&mut self) -> Option<char> {
         let next = self.input.next()?;
         self.curr_lexeme.push(next);
 
-        if next == '\n' {
-            self.line += 1;
-            self.column = 0;
-        } else {
-            self.column += 1;
-        }
+        self.curr_byte_offset += next.len_utf8();
 
         Some(next)
     }

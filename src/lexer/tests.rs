@@ -118,34 +118,13 @@ fn claim_nat() {
     lex_helper(
         "(claim foo\n  (Nat))",
         vec![
-            Token::new(
-                TokenKind::OpenParen,
-                Span::new(Position::new(0, 0), Position::new(0, 1)),
-            ),
-            Token::new(
-                TokenKind::Keyword(Keyword::Claim),
-                Span::new(Position::new(0, 1), Position::new(0, 6)),
-            ),
-            Token::new(
-                TokenKind::Identifier(String::from("foo")),
-                Span::new(Position::new(0, 7), Position::new(0, 10)),
-            ),
-            Token::new(
-                TokenKind::OpenParen,
-                Span::new(Position::new(1, 2), Position::new(1, 3)),
-            ),
-            Token::new(
-                TokenKind::Keyword(Keyword::Nat),
-                Span::new(Position::new(1, 3), Position::new(1, 6)),
-            ),
-            Token::new(
-                TokenKind::CloseParen,
-                Span::new(Position::new(1, 6), Position::new(1, 7)),
-            ),
-            Token::new(
-                TokenKind::CloseParen,
-                Span::new(Position::new(1, 7), Position::new(1, 8)),
-            ),
+            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+            Token::new(TokenKind::Keyword(Keyword::Claim), Span::new(1, 6)),
+            Token::new(TokenKind::Identifier(String::from("foo")), Span::new(7, 10)),
+            Token::new(TokenKind::OpenParen, Span::new(13, 14)),
+            Token::new(TokenKind::Keyword(Keyword::Nat), Span::new(14, 17)),
+            Token::new(TokenKind::CloseParen, Span::new(17, 18)),
+            Token::new(TokenKind::CloseParen, Span::new(18, 19)),
         ],
     );
 }
@@ -155,26 +134,11 @@ fn straightforward_the() {
     lex_helper(
         "(the Nat 1)",
         vec![
-            Token::new(
-                TokenKind::OpenParen,
-                Span::new(Position::new(0, 0), Position::new(0, 1)),
-            ),
-            Token::new(
-                TokenKind::Keyword(Keyword::The),
-                Span::new(Position::new(0, 1), Position::new(0, 4)),
-            ),
-            Token::new(
-                TokenKind::Keyword(Keyword::Nat),
-                Span::new(Position::new(0, 5), Position::new(0, 8)),
-            ),
-            Token::new(
-                TokenKind::Literal(Literal::Nat(1)),
-                Span::new(Position::new(0, 9), Position::new(0, 10)),
-            ),
-            Token::new(
-                TokenKind::CloseParen,
-                Span::new(Position::new(0, 10), Position::new(0, 11)),
-            ),
+            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+            Token::new(TokenKind::Keyword(Keyword::The), Span::new(1, 4)),
+            Token::new(TokenKind::Keyword(Keyword::Nat), Span::new(5, 8)),
+            Token::new(TokenKind::Literal(Literal::Nat(1)), Span::new(9, 10)),
+            Token::new(TokenKind::CloseParen, Span::new(10, 11)),
         ],
     );
 }
@@ -185,7 +149,7 @@ fn ident_starting_with_backslash() {
         r"\'d",
         vec![Token::new(
             TokenKind::Identifier(String::from(r"\'d")),
-            Span::new(Position::new(0, 0), Position::new(0, 3)),
+            Span::new(0, 3),
         )],
     );
 }
@@ -196,7 +160,7 @@ fn ident_starting_with_pipe() {
         r"|foo|",
         vec![Token::new(
             TokenKind::Identifier(String::from(r"|foo|")),
-            Span::new(Position::new(0, 0), Position::new(0, 5)),
+            Span::new(0, 5),
         )],
     );
 }
@@ -207,7 +171,7 @@ fn ident_starting_pound_percent() {
         r"#%foo",
         vec![Token::new(
             TokenKind::Identifier(String::from(r"#%foo")),
-            Span::new(Position::new(0, 0), Position::new(0, 5)),
+            Span::new(0, 5),
         )],
     );
 }
@@ -283,4 +247,24 @@ Error: Unexpected character `5` following `#`
 #[test]
 fn empty_string() {
     lex_helper("", vec![]);
+}
+
+#[test]
+fn multi_line_pipe_ident_incomplete() {
+    lex_helper_neg(
+        r"|foo
+bar||",
+        #[rustfmt::skip]
+
+        "\
+Error: EOF encountered when searching for enclosing `|`
+   ╭─[ test_input:1:1 ]
+   │
+ 1 │ ╭─▶ |foo
+ 2 │ ├─▶ bar||
+   │ │          
+   │ ╰────────── expected a `|` at the end to complete the identifier
+───╯
+",
+    );
 }
