@@ -50,6 +50,18 @@ proptest! {
     }
 }
 
+proptest! {
+    #[test]
+    fn should_not_panic(
+        arbitrary_string in prop::collection::vec(any::<char>(), 1..10000)
+        .prop_map(|chars| chars.into_iter().collect::<String>())
+    ) {
+        let file = SourceFile::new("test_input".to_string(), arbitrary_string);
+        let lexer = Lexer::new(&file);
+        let _ = lexer.lex();
+    }
+}
+
 fn lex_helper(source: &str, expected: Vec<Token>) {
     let file = SourceFile::new("test_input".to_string(), source.to_string());
     let lexer = Lexer::new(&file);
