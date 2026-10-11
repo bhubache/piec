@@ -2,8 +2,8 @@ use std::ops::Range;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Span {
-    start: Position,
-    end: Position,
+    pub start: Position,
+    pub end: Position,
 }
 
 impl Span {
@@ -30,8 +30,8 @@ impl From<Span> for Range<usize> {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Position {
-    line: usize,
-    column: usize,
+    pub line: usize,
+    pub column: usize,
 }
 
 impl Position {
