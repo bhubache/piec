@@ -34,6 +34,11 @@ fn arb_literal() -> impl Strategy<Value = token::Literal> {
 }
 
 proptest! {
+    #![proptest_config(ProptestConfig {
+        timeout: 300 * 1000,
+        .. ProptestConfig::default()
+    })]
+
     #[test]
     fn property_based(token_kinds in prop::collection::vec(arb_token_kind(), 1..1000)) {
         let token_strings: Vec<String> = token_kinds.iter().map(|tok| format!("{}", tok)).collect();
@@ -48,6 +53,11 @@ proptest! {
 }
 
 proptest! {
+    #![proptest_config(ProptestConfig {
+        timeout: 300 * 1000,
+        .. ProptestConfig::default()
+    })]
+
     #[test]
     fn should_not_panic(
         arbitrary_string in prop::collection::vec(any::<char>(), 1..10000)
