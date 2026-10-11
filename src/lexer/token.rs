@@ -56,12 +56,6 @@ pub enum TokenKind {
     Keyword(Keyword),
 }
 
-impl From<TokenKind> for String {
-    fn from(value: TokenKind) -> Self {
-        format!("{}", value)
-    }
-}
-
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
