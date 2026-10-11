@@ -120,6 +120,30 @@ Error: lone `'`
 }
 
 #[test]
+fn multiple_diagnostics() {
+    lex_helper_neg(
+        r"' foo \",
+        #[rustfmt::skip]
+        "\
+Error: lone `'`
+   ╭─[ test_input:1:1 ]
+   │
+ 1 │ ' foo \\
+   │ ┬  
+   │ ╰── expected one or more alphabetic characters and/or hyphens to follow this to produce an Atom
+───╯
+Error: EOF following `\\`
+   ╭─[ test_input:1:7 ]
+   │
+ 1 │ ' foo \\
+   │       ┬  
+   │       ╰── expected any single character to follow this to complete, or start, an identifier
+───╯
+",
+    );
+}
+
+#[test]
 fn claim_nat() {
     lex_helper(
         "(claim foo\n  (Nat))",

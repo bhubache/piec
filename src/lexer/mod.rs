@@ -38,8 +38,12 @@ impl<'a> Lexer<'a> {
     pub fn lex(mut self) -> Result<Vec<Token>, Vec<Diagnostic<'a>>> {
         let mut tokens = Vec::new();
 
-        while let Some(tok) = self.next_token() {
-            tokens.push(tok);
+        loop {
+            match self.next_token() {
+                Ok(token) => tokens.push(token),
+                Err(Recoverable::Yes) => continue,
+                Err(Recoverable::No) => break,
+            }
         }
 
         if !self.diagnostics.is_empty() {
@@ -49,12 +53,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Option<Token> {
+    fn next_token(&mut self) -> Result<Token, Recoverable> {
         self.eat_whitespace();
 
         self.start_byte_offset = self.curr_byte_offset;
 
-        let first_char = self.step()?;
+        let first_char = self.step().ok_or(Recoverable::No)?;
 
         let token_kind = match first_char {
             '"' => TokenKind::DoubleQuote,
@@ -62,8 +66,6 @@ impl<'a> Lexer<'a> {
             '\'' => match self.eat_while_true(|c| c.is_alphabetic() || c == '-') {
                 true => TokenKind::Atom(self.curr_lexeme.clone()),
                 false => {
-                    // TODO: Shouldn't we attempt to continue lexing to uncover as many errors as
-                    // possible?
                     self.save_diagnostic(
                         "lone `'`",
                         vec![
@@ -73,7 +75,7 @@ impl<'a> Lexer<'a> {
                             ),
                         ],
                     );
-                    return None;
+                    return Err(Recoverable::Yes);
                 }
             },
             '`' => TokenKind::BackTick,
@@ -163,23 +165,23 @@ impl<'a> Lexer<'a> {
 
         self.curr_lexeme.clear();
 
-        Some(Token::new(token_kind, self.curr_token_span()))
+        Ok(Token::new(token_kind, self.curr_token_span()))
     }
 
-    fn eat_rest_of_backlash_ident(&mut self) -> Option<char> {
-        self.step().or_else(|| {
+    fn eat_rest_of_backlash_ident(&mut self) -> Result<char, Recoverable> {
+        self.step().ok_or_else(|| {
             self.save_diagnostic(
                 r"EOF following `\`",
                 vec![Annotation::new(self.curr_token_span(), "expected any single character to follow this to complete, or start, an identifier")],
             );
 
-            None
+            Recoverable::No
         })
     }
 
-    fn eat_rest_of_pipe_ident(&mut self) -> Option<char> {
+    fn eat_rest_of_pipe_ident(&mut self) -> Result<char, Recoverable> {
         self.eat_while_true(|ch| ch != '|');
-        self.step().or_else(|| {
+        self.step().ok_or_else(|| {
             self.save_diagnostic(
                 "EOF encountered when searching for enclosing `|`",
                 vec![Annotation::new(
@@ -188,7 +190,7 @@ impl<'a> Lexer<'a> {
                 )],
             );
 
-            None
+            Recoverable::Yes
         })
     }
 
@@ -243,4 +245,9 @@ fn is_ident_delimiter(character: char) -> bool {
         character,
         '"' | ',' | '\'' | '`' | '(' | ')' | '[' | ']' | '{' | '}' | ';'
     ) || character.is_whitespace()
+}
+
+enum Recoverable {
+    Yes,
+    No,
 }
