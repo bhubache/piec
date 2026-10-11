@@ -16,7 +16,7 @@ fn arb_token_kind() -> impl Strategy<Value = token::TokenKind> {
         r#"((\\.|\|[^|]*\|)|([^",'`()\[\]{};\s\\|#])|(#%))((\\.|\|[^|]*\|)|([^",'`()\[\]{};\s\\|]))*"#
             .prop_map(TokenKind::Identifier)
             .prop_filter("must not be a keyword", |ident| token::Keyword::try_from(
-                ident.to_string()
+                ident.to_string().as_str()
             )
             .is_err())
             // TODO: Is there a way to derive this from `token::Literal`?

@@ -159,7 +159,7 @@ impl<'a> Lexer<'a> {
                 if self.curr_token_to_be.chars().all(|ch| ch.is_ascii_digit()) {
                     TokenKind::Literal(Literal::Nat(self.curr_token_to_be.parse().unwrap()))
                 } else {
-                    match Keyword::try_from(self.curr_token_to_be.clone()) {
+                    match Keyword::try_from(self.curr_token_to_be.as_str()) {
                         Ok(keyword) => TokenKind::Keyword(keyword),
                         Err(_) => TokenKind::Identifier(self.curr_token_to_be.clone()),
                     }

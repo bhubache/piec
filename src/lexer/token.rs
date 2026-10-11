@@ -250,11 +250,11 @@ impl From<&Keyword> for String {
     }
 }
 
-impl TryFrom<String> for Keyword {
+impl TryFrom<&str> for Keyword {
     type Error = ();
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let keyword = match value.as_str() {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let keyword = match value {
             "Π" => Self::GreekCapitalLetterPi,
             "∏" => Self::NaryProduct,
             "→" => Self::RightwardsArrow,
