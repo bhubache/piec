@@ -1,6 +1,7 @@
 // TODO: Learn how to thoroughly test this
 use super::*;
-use crate::parser::ast::{self, Expression, ExpressionKind, Program, Type};
+use crate::lexer::token;
+use crate::parser::ast::{Expression, ExpressionKind, Program};
 use crate::span::Span;
 
 use pretty_assertions::assert_eq;
@@ -29,33 +30,28 @@ fn run_parse_neg(source: &str, tokens: Vec<Token>) {
 }
 
 #[test]
-fn straightforward_the() {
+fn just_todo() {
     run_parse(
-        "(the Nat 1)",
-        vec![
-            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
-            Token::new(TokenKind::Keyword(Keyword::The), Span::new(1, 4)),
-            Token::new(TokenKind::Keyword(Keyword::Nat), Span::new(5, 8)),
-            Token::new(TokenKind::Literal(Literal::Nat(1)), Span::new(9, 10)),
-            Token::new(TokenKind::CloseParen, Span::new(10, 11)),
-        ],
-        Program::new(vec![Expression::new(ExpressionKind::The(
-            Type::Nat,
-            ast::Value::Nat(ast::NatConstructorExpr::Add1(0)),
-        ))]),
+        "TODO",
+        vec![Token::new(
+            TokenKind::Keyword(token::Keyword::Todo),
+            Span::new(0, 4),
+        )],
+        Program::new(vec![Expression::new(ExpressionKind::Todo)]),
     )
 }
 
 #[test]
-fn invalid_type_in_the_expr() {
-    run_parse_neg(
-        "(the 123 1)",
+fn two_todos() {
+    run_parse(
+        "TODO TODO",
         vec![
-            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
-            Token::new(TokenKind::Keyword(Keyword::The), Span::new(1, 4)),
-            Token::new(TokenKind::Literal(Literal::Nat(123)), Span::new(5, 8)),
-            Token::new(TokenKind::Literal(Literal::Nat(1)), Span::new(9, 10)),
-            Token::new(TokenKind::CloseParen, Span::new(10, 11)),
+            Token::new(TokenKind::Keyword(token::Keyword::Todo), Span::new(0, 4)),
+            Token::new(TokenKind::Keyword(token::Keyword::Todo), Span::new(5, 9)),
         ],
-    );
+        Program::new(vec![
+            Expression::new(ExpressionKind::Todo),
+            Expression::new(ExpressionKind::Todo),
+        ]),
+    )
 }
