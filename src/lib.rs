@@ -1,4 +1,4 @@
-#![feature(stmt_expr_attributes)]
+#![cfg_attr(test, feature(stmt_expr_attributes))]
 
 mod compiler;
 pub use compiler::Compiler;
