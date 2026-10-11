@@ -1,3 +1,5 @@
+use std::io;
+use std::io::Write;
 use std::ops::Range;
 
 use crate::source::SourceFile;
@@ -35,6 +37,10 @@ impl<'a> Diagnostic<'a> {
     }
 
     pub fn report(&self) {
+        self.write_to(io::stderr());
+    }
+
+    pub fn write_to<W: Write>(&self, dst: W) {
         let mut report = Report::build(
             ReportKind::Error,
             (self.file.file_path.clone(), Range::from(self.span)),
@@ -48,10 +54,13 @@ impl<'a> Diagnostic<'a> {
         }
         report
             .finish()
-            .eprint((
-                self.file.file_path.clone(),
-                Source::from(self.file.source.clone()),
-            ))
+            .write(
+                (
+                    self.file.file_path.clone(),
+                    Source::from(self.file.source.clone()),
+                ),
+                dst,
+            )
             .unwrap();
     }
 }

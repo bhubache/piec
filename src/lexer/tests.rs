@@ -1,7 +1,4 @@
-use std::io::Read;
-
 use super::*;
-use gag::BufferRedirect;
 use strum::IntoEnumIterator;
 
 use pretty_assertions::assert_eq;
@@ -78,13 +75,12 @@ fn lex_helper_neg(source: &str, expected_diag_msgs: &str) {
     match maybe_tokens {
         Ok(tokens) => panic!("String lexed when it should not have: {:?}", tokens),
         Err(diagnostics) => {
-            let mut buf = BufferRedirect::stderr().unwrap();
+            let mut vec = Vec::new();
             for diag in diagnostics.iter() {
-                diag.report();
+                diag.write_to(&mut vec);
             }
 
-            let mut output = String::new();
-            buf.read_to_string(&mut output).unwrap();
+            let output = String::from_utf8(vec).unwrap();
 
             println!("{}", output);
 
