@@ -89,7 +89,11 @@ impl<'a> Lexer<'a> {
             ']' => TokenKind::CloseSquareBracket,
             '{' => TokenKind::OpenCurlyBrace,
             '}' => TokenKind::CloseCurlyBrace,
-            ';' => TokenKind::SemiColon,
+            ';' => {
+                self.eat_while_true(|ch| ch != '\n');
+
+                TokenKind::LineComment(self.curr_token_to_be.clone())
+            }
             character => {
                 match character {
                     '\\' => {

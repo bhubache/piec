@@ -47,8 +47,8 @@ pub enum TokenKind {
     /// `}`
     CloseCurlyBrace,
 
-    /// `;`
-    SemiColon,
+    /// `;` starts the comment
+    LineComment(String),
 
     Literal(Literal),
     Atom(String),
@@ -74,7 +74,7 @@ impl fmt::Display for TokenKind {
             Self::CloseSquareBracket => write!(f, "]"),
             Self::OpenCurlyBrace => write!(f, "{{"),
             Self::CloseCurlyBrace => write!(f, "}}"),
-            Self::SemiColon => write!(f, ";"),
+            Self::LineComment(comment) => write!(f, ";{}", comment),
             Self::Literal(lit) => write!(f, "{}", lit),
             Self::Atom(atom) => write!(f, "{}", atom),
             Self::Identifier(ident) => write!(f, "{}", ident),
