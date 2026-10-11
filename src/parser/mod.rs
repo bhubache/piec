@@ -74,11 +74,11 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_type(&mut self) -> ast::Type {
-        if self.eat_term(TokenKind::Keyword(Keyword::Absurd)) {
+        if self.eat_token(TokenKind::Keyword(Keyword::Absurd)) {
             ast::Type::Absurd
-        } else if self.eat_term(TokenKind::Keyword(Keyword::Trivial)) {
+        } else if self.eat_token(TokenKind::Keyword(Keyword::Trivial)) {
             ast::Type::Trivial
-        } else if self.eat_term(TokenKind::Keyword(Keyword::Nat)) {
+        } else if self.eat_token(TokenKind::Keyword(Keyword::Nat)) {
             ast::Type::Nat
         } else {
             self.save_diagnostic("expected type", vec![]);
@@ -111,7 +111,7 @@ impl<'a> Parser<'a> {
     }
 
     fn expect(&mut self, token: TokenKind) -> Result<(), ()> {
-        match self.eat_term(token.clone()) {
+        match self.eat_token(token.clone()) {
             true => Ok(()),
             false => {
                 dbg!(
@@ -137,7 +137,7 @@ impl<'a> Parser<'a> {
         self.curr_index += 1;
     }
 
-    fn eat_term(&mut self, token: TokenKind) -> bool {
+    fn eat_token(&mut self, token: TokenKind) -> bool {
         let matches = self.check(token);
         if matches {
             self.step();

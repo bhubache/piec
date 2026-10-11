@@ -22,7 +22,7 @@ pub struct Lexer<'a> {
     start_column: usize,
     line: usize,
     column: usize,
-    curr_token_to_be: String,
+    curr_lexeme: String,
     diagnostics: Vec<Diagnostic<'a>>,
 }
 
@@ -35,7 +35,7 @@ impl<'a> Lexer<'a> {
             start_column: 0,
             line: 0,
             column: 0,
-            curr_token_to_be: String::new(),
+            curr_lexeme: String::new(),
             diagnostics: Vec::new(),
         }
     }
@@ -66,7 +66,7 @@ impl<'a> Lexer<'a> {
             '"' => TokenKind::DoubleQuote,
             ',' => TokenKind::Comma,
             '\'' => match self.eat_while_true(|c| c.is_alphabetic() || c == '-') {
-                true => TokenKind::Atom(self.curr_token_to_be.clone()),
+                true => TokenKind::Atom(self.curr_lexeme.clone()),
                 false => {
                     // TODO: Shouldn't we attempt to continue lexing to uncover as many errors as
                     // possible?
@@ -92,7 +92,7 @@ impl<'a> Lexer<'a> {
             ';' => {
                 self.eat_while_true(|ch| ch != '\n');
 
-                TokenKind::LineComment(self.curr_token_to_be.clone())
+                TokenKind::LineComment(self.curr_lexeme.clone())
             }
             character => {
                 match character {
@@ -156,18 +156,18 @@ impl<'a> Lexer<'a> {
                     }
                 }
 
-                if self.curr_token_to_be.chars().all(|ch| ch.is_ascii_digit()) {
-                    TokenKind::Literal(Literal::Nat(self.curr_token_to_be.parse().unwrap()))
+                if self.curr_lexeme.chars().all(|ch| ch.is_ascii_digit()) {
+                    TokenKind::Literal(Literal::Nat(self.curr_lexeme.parse().unwrap()))
                 } else {
-                    match Keyword::try_from(self.curr_token_to_be.as_str()) {
+                    match Keyword::try_from(self.curr_lexeme.as_str()) {
                         Ok(keyword) => TokenKind::Keyword(keyword),
-                        Err(_) => TokenKind::Identifier(self.curr_token_to_be.clone()),
+                        Err(_) => TokenKind::Identifier(self.curr_lexeme.clone()),
                     }
                 }
             }
         };
 
-        self.curr_token_to_be.clear();
+        self.curr_lexeme.clear();
 
         Some(Token::new(token_kind, self.curr_token_span()))
     }
@@ -212,7 +212,7 @@ impl<'a> Lexer<'a> {
 
     fn step(&mut self) -> Option<char> {
         let next = self.input.next()?;
-        self.curr_token_to_be.push(next);
+        self.curr_lexeme.push(next);
 
         if next == '\n' {
             self.line += 1;
@@ -236,7 +236,7 @@ impl<'a> Lexer<'a> {
 
     fn eat_whitespace(&mut self) {
         self.eat_while_true(char::is_whitespace);
-        self.curr_token_to_be.clear();
+        self.curr_lexeme.clear();
     }
 
     fn peek_first(&self) -> Option<char> {
