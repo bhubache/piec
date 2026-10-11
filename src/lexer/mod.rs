@@ -40,9 +40,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    // Possible next_token return scenarios other than normal token:
-    // - first character is EOF
-    // - reach EOF while lexing for ident that must be more than one character
     pub fn lex(mut self) -> Result<Vec<Token>, Vec<Diagnostic<'a>>> {
         let mut tokens = Vec::new();
 
@@ -72,32 +69,128 @@ impl<'a> Lexer<'a> {
             '\'' => match self.eat_while_true(|c| c.is_alphabetic() || c == '-') {
                 true => TokenKind::Atom(self.curr_token_to_be.clone()),
                 false => {
+                    // TODO: Shouldn't we attempt to continue lexing to uncover as many errors as
+                    // possible?
                     self.save_diagnostic(
                         "lone `'`",
                         vec![
-                            Annotation::new(self.curr_token_span(), "expected one or more alphabetic characters and/or hyphens to follow this to produce an Atom"),
+                            Annotation::new(
+                                self.curr_token_span(),
+                                "expected one or more alphabetic characters and/or hyphens to follow this to produce an Atom",
+                            ),
                         ],
                     );
                     return None;
                 }
             },
-            '0'..='9' => {
-                self.eat_while_true(|c| c.is_ascii_digit());
-                TokenKind::Literal(Literal::Nat(self.curr_token_to_be.parse().unwrap()))
-            }
-            character if self.is_valid_ident_start(character) => self.eat_identifier(),
             character => {
-                self.save_diagnostic(
-                    format!("unknown start of token encountered: `{}`", character),
-                    vec![],
-                );
-                return None;
+                match character {
+                    '\\' => {
+                        self.eat_rest_of_backlash_ident()?;
+                    }
+                    '|' => {
+                        self.eat_rest_of_pipe_ident()?;
+                    }
+                    '#' => {
+                        match self.peek_first() {
+                            Some(next_char) => {
+                                if next_char == '%' {
+                                    self.step();
+                                } else {
+                                    let mut span = self.curr_token_span();
+                                    span.start.column += 1;
+                                    span.end.column += 1;
+                                    self.save_diagnostic(
+                                        format!("Unexpected character `{}` following `#`", next_char),
+                                        vec![Annotation::new(span, "expected this character to be `%`, indicating an identifier or the start of an identifier")],
+                                    );
+                                }
+                            }
+                            None => {
+                                self.save_diagnostic(
+                                    "EOF following `#`",
+                                    vec![Annotation::new(self.curr_token_span(), "expected a `%` to follow this to complete, or start, an identifier")],
+                                )
+                            }
+                        }
+                    }
+                    _ => {
+                        if is_ident_delimiter(character) || matches!(character, '\\' | '|' | '#') {
+                            self.save_diagnostic(
+                                "invalid start of identifier",
+                                vec![Annotation::new(self.curr_token_span(), "invalid start of identifier")],
+                            );
+                        }
+                    }
+                }
+
+                let mut keep_eating = true;
+                while !self.at_eof() && keep_eating {
+                    match self.peek_first().unwrap() {
+                        '\\' => {
+                            self.step();
+                            self.eat_rest_of_backlash_ident()?;
+                        }
+                        '|' => {
+                            self.step();
+                            self.eat_rest_of_pipe_ident()?;
+                        }
+                        character => {
+                            if is_valid_ident_continued(character) {
+                                self.step();
+                            } else {
+                                keep_eating = false;
+                            }
+                        }
+                    }
+                }
+
+                if self.curr_token_to_be.chars().all(|ch| ch.is_ascii_digit()) {
+                    TokenKind::Literal(Literal::Nat(self.curr_token_to_be.parse().unwrap()))
+                } else {
+                    match Keyword::try_from(self.curr_token_to_be.clone()) {
+                        Ok(keyword) => TokenKind::Keyword(keyword),
+                        Err(_) => TokenKind::Identifier(self.curr_token_to_be.clone()),
+                    }
+                }
             }
         };
 
         self.curr_token_to_be.clear();
 
         Some(Token::new(token_kind, self.curr_token_span()))
+    }
+
+    fn eat_rest_of_backlash_ident(&mut self) -> Option<char> {
+        // TODO: self.peek_first().unwrap_or_else(|| self.save_diagnostic(...))?
+        match self.peek_first() {
+            Some(_) => Some(self.step().unwrap()),
+            None => {
+                self.save_diagnostic(
+                    r"EOF following `\`",
+                    vec![Annotation::new(self.curr_token_span(), "expected any single character to follow this to complete, or start, an identifier")],
+                );
+
+                None
+            }
+        }
+    }
+
+    fn eat_rest_of_pipe_ident(&mut self) -> Option<char> {
+        self.eat_while_true(|ch| ch != '|');
+        if self.at_eof() {
+            self.save_diagnostic(
+                "EOF encountered when searching for enclosing `|`",
+                vec![Annotation::new(
+                    self.curr_token_span(),
+                    "expected a `|` at the end to complete the identifier",
+                )],
+            );
+
+            None
+        } else {
+            Some(self.step().unwrap())
+        }
     }
 
     fn save_diagnostic(&mut self, message: impl Into<String>, annotations: Vec<Annotation>) {
@@ -141,67 +234,12 @@ impl<'a> Lexer<'a> {
         self.curr_token_to_be.clear();
     }
 
-    fn eat_identifier(&mut self) -> TokenKind {
-        self.eat_while_true(is_valid_ident_continued);
-
-        // FIXME: At this point the token should be an ident delimiter
-
-        match Keyword::try_from(self.curr_token_to_be.clone()) {
-            Ok(keyword) => TokenKind::Keyword(keyword),
-            Err(_) => TokenKind::Identifier(self.curr_token_to_be.clone()),
-        }
-    }
-
     fn peek_first(&self) -> Option<char> {
         self.input.clone().next()
     }
 
     fn at_eof(&self) -> bool {
         self.input.as_str().is_empty()
-    }
-
-    fn is_valid_ident_start(&mut self, character: char) -> bool {
-        // TODO: The official pie implementation supports some interesting identifiers.
-        // Below is how pie officially defines identifiers.
-        //
-        //     [identifier-delims (:or (char-set "\",'`()[]{};") pie-whitespace)]
-        //     [identifier-chars (:~ identifier-delims "\\" "|")]
-        //     [identifier-escapes (:or (:: "\\" any-char)
-        //                              (:: "|" (:* (:~ "|")) "|"))]
-        //     [identifier-start (:or identifier-escapes
-        //                            (:~ identifier-delims "\\" "|" "#")
-        //                            "#%")]
-        //     [identifier (:: identifier-start
-        //                     (:* identifier-escapes identifier-chars))]
-        //
-        // Identifiers of the following form are not yet supported:
-        //     - Those defined by identifier-escapes
-        //     - Those starting with `#%`
-        if self.is_ident_escape(character) {
-            true
-        } else {
-            !is_ident_delimiter(character) && !matches!(character, '\\' | '|' | '#')
-        }
-    }
-
-    fn is_ident_escape(&mut self, character: char) -> bool {
-        if character == '\\' {
-            if self.at_eof() {
-                false
-            } else {
-                self.step();
-                true
-            }
-        } else if character == '|' {
-            todo!()
-        } else if character == '#' {
-            match self.peek_first() {
-                Some(ch) => ch == '%',
-                None => false,
-            }
-        } else {
-            false
-        }
     }
 }
 

@@ -13,13 +13,14 @@ fn arb_token_kind() -> impl Strategy<Value = token::TokenKind> {
         Just(TokenKind::CloseParen),
         Just(TokenKind::Comma),
         r"'[a-zA-Z\-]+".prop_map(TokenKind::Atom),
-        // TODO: Accept more
-        r"[a-zA-Z][a-zA-Z0-9]*"
+        r#"((\\.|\|[^|]*\|)|([^",'`()\[\]{};\s\\|#])|(#%))((\\.|\|[^|]*\|)|([^",'`()\[\]{};\s\\|]))*"#
             .prop_map(TokenKind::Identifier)
             .prop_filter("must not be a keyword", |ident| token::Keyword::try_from(
                 ident.to_string()
             )
-            .is_err()),
+            .is_err())
+            // TODO: Is there a way to derive this from `token::Literal`?
+            .prop_filter("must not be a literal", |ident| ident.to_string().parse::<usize>().is_err()),
         arb_keyword().prop_map(TokenKind::Keyword),
         arb_literal().prop_map(TokenKind::Literal),
     ]
@@ -72,6 +73,8 @@ fn lex_helper_neg(source: &str, expected_diag_msgs: &str) {
 
             let mut output = String::new();
             buf.read_to_string(&mut output).unwrap();
+
+            println!("{}", output);
 
             assert_eq!(
                 strip_ansi_escapes::strip_str(&output[..]),
@@ -176,6 +179,17 @@ fn ident_starting_with_backslash() {
 }
 
 #[test]
+fn ident_starting_with_pipe() {
+    lex_helper(
+        r"|foo|",
+        vec![Token::new(
+            TokenKind::Identifier(String::from(r"|foo|")),
+            Span::new(Position::new(0, 0), Position::new(0, 5)),
+        )],
+    );
+}
+
+#[test]
 fn ident_starting_pound_percent() {
     lex_helper(
         r"#%foo",
@@ -183,5 +197,73 @@ fn ident_starting_pound_percent() {
             TokenKind::Identifier(String::from(r"#%foo")),
             Span::new(Position::new(0, 0), Position::new(0, 5)),
         )],
+    );
+}
+
+#[test]
+fn backslash_ident_incomplete() {
+    lex_helper_neg(
+        r"foo\",
+        #[rustfmt::skip]
+        "\
+Error: EOF following `\\`
+   ╭─[ test_input:1:1 ]
+   │
+ 1 │ foo\\
+   │ ──┬─  
+   │   ╰─── expected any single character to follow this to complete, or start, an identifier
+───╯
+",
+    );
+}
+
+#[test]
+fn pipe_ident_incomplete() {
+    lex_helper_neg(
+        r"|foo",
+        #[rustfmt::skip]
+        "\
+Error: EOF encountered when searching for enclosing `|`
+   ╭─[ test_input:1:1 ]
+   │
+ 1 │ |foo
+   │ ──┬─  
+   │   ╰─── expected a `|` at the end to complete the identifier
+───╯
+",
+    );
+}
+
+#[test]
+fn missing_character_after_pound() {
+    lex_helper_neg(
+        r"#",
+        #[rustfmt::skip]
+        "\
+Error: EOF following `#`
+   ╭─[ test_input:1:1 ]
+   │
+ 1 │ #
+   │ ┬  
+   │ ╰── expected a `%` to follow this to complete, or start, an identifier
+───╯
+",
+    );
+}
+
+#[test]
+fn incorrect_character_following_pound() {
+    lex_helper_neg(
+        r"#5",
+        #[rustfmt::skip]
+        "\
+Error: Unexpected character `5` following `#`
+   ╭─[ test_input:1:1 ]
+   │
+ 1 │ #5
+   │  ┬  
+   │  ╰── expected this character to be `%`, indicating an identifier or the start of an identifier
+───╯
+",
     );
 }
