@@ -214,7 +214,7 @@ impl<'a> Lexer<'a> {
         let next = self.input.next()?;
         self.curr_token_to_be.push(next);
 
-        if next == (0xA as char) {
+        if next == '\n' {
             self.line += 1;
             self.column = 0;
         } else {
