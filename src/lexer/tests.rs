@@ -279,3 +279,8 @@ Error: Unexpected character `5` following `#`
 ",
     );
 }
+
+#[test]
+fn empty_string() {
+    lex_helper("", vec![]);
+}
