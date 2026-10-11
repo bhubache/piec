@@ -63,8 +63,7 @@ impl<'a> Lexer<'a> {
         let first_char = self.step()?;
 
         let token_kind = match first_char {
-            '(' => TokenKind::OpenParen,
-            ')' => TokenKind::CloseParen,
+            '"' => TokenKind::DoubleQuote,
             ',' => TokenKind::Comma,
             '\'' => match self.eat_while_true(|c| c.is_alphabetic() || c == '-') {
                 true => TokenKind::Atom(self.curr_token_to_be.clone()),
@@ -83,6 +82,14 @@ impl<'a> Lexer<'a> {
                     return None;
                 }
             },
+            '`' => TokenKind::BackTick,
+            '(' => TokenKind::OpenParen,
+            ')' => TokenKind::CloseParen,
+            '[' => TokenKind::OpenSquareBracket,
+            ']' => TokenKind::CloseSquareBracket,
+            '{' => TokenKind::OpenCurlyBrace,
+            '}' => TokenKind::CloseCurlyBrace,
+            ';' => TokenKind::SemiColon,
             character => {
                 match character {
                     '\\' => {

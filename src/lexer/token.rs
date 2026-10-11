@@ -20,12 +20,36 @@ impl Token {
 // - Look through pie lexer for rest
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
-    /// `(`
-    OpenParen,
-    /// `)`
-    CloseParen,
+    /// `"`
+    DoubleQuote,
+
     /// `,`
     Comma,
+
+    /// `````
+    BackTick,
+
+    /// `(`
+    OpenParen,
+
+    /// `)`
+    CloseParen,
+
+    /// `[`
+    OpenSquareBracket,
+
+    /// `]`
+    CloseSquareBracket,
+
+    /// `{`
+    OpenCurlyBrace,
+
+    /// `}`
+    CloseCurlyBrace,
+
+    /// `;`
+    SemiColon,
+
     Literal(Literal),
     Atom(String),
     Identifier(String),
@@ -41,9 +65,16 @@ impl From<TokenKind> for String {
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::DoubleQuote => write!(f, "\""),
+            Self::Comma => write!(f, ","),
+            Self::BackTick => write!(f, "`"),
             Self::OpenParen => write!(f, "("),
             Self::CloseParen => write!(f, ")"),
-            Self::Comma => write!(f, ","),
+            Self::OpenSquareBracket => write!(f, "["),
+            Self::CloseSquareBracket => write!(f, "]"),
+            Self::OpenCurlyBrace => write!(f, "{{"),
+            Self::CloseCurlyBrace => write!(f, "}}"),
+            Self::SemiColon => write!(f, ";"),
             Self::Literal(lit) => write!(f, "{}", lit),
             Self::Atom(atom) => write!(f, "{}", atom),
             Self::Identifier(ident) => write!(f, "{}", ident),
