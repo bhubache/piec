@@ -225,13 +225,13 @@ impl<'a> Lexer<'a> {
     }
 
     fn eat_while_true(&mut self, predicate: fn(char) -> bool) -> bool {
-        let mut consumed_at_least_on_char = false;
+        let mut consumed_at_least_one_char = false;
         while self.peek_first().is_some() && predicate(self.peek_first().unwrap()) {
-            consumed_at_least_on_char = true;
+            consumed_at_least_one_char = true;
             self.step();
         }
 
-        consumed_at_least_on_char
+        consumed_at_least_one_char
     }
 
     fn eat_whitespace(&mut self) {
