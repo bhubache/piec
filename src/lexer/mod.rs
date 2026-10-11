@@ -162,23 +162,19 @@ impl<'a> Lexer<'a> {
     }
 
     fn eat_rest_of_backlash_ident(&mut self) -> Option<char> {
-        // TODO: self.peek_first().unwrap_or_else(|| self.save_diagnostic(...))?
-        match self.peek_first() {
-            Some(_) => Some(self.step().unwrap()),
-            None => {
-                self.save_diagnostic(
-                    r"EOF following `\`",
-                    vec![Annotation::new(self.curr_token_span(), "expected any single character to follow this to complete, or start, an identifier")],
-                );
+        self.step().or_else(|| {
+            self.save_diagnostic(
+                r"EOF following `\`",
+                vec![Annotation::new(self.curr_token_span(), "expected any single character to follow this to complete, or start, an identifier")],
+            );
 
-                None
-            }
-        }
+            None
+        })
     }
 
     fn eat_rest_of_pipe_ident(&mut self) -> Option<char> {
         self.eat_while_true(|ch| ch != '|');
-        if self.at_eof() {
+        self.step().or_else(|| {
             self.save_diagnostic(
                 "EOF encountered when searching for enclosing `|`",
                 vec![Annotation::new(
@@ -188,9 +184,7 @@ impl<'a> Lexer<'a> {
             );
 
             None
-        } else {
-            Some(self.step().unwrap())
-        }
+        })
     }
 
     fn save_diagnostic(&mut self, message: impl Into<String>, annotations: Vec<Annotation>) {
