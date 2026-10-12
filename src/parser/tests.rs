@@ -22,7 +22,7 @@ fn run_parse(source: &str, tokens: Vec<Token>, expected: Program) {
     }
 }
 
-fn run_parse_neg(source: &str, tokens: Vec<Token>) {
+fn run_parse_neg(source: &str, tokens: Vec<Token>, expected_diag_msgs: &str) {
     let file = SourceFile::new("test_input".to_string(), source.to_string());
     let parser = Parser::new(&file, tokens);
 
@@ -40,12 +40,10 @@ fn run_parse_neg(source: &str, tokens: Vec<Token>) {
 
             println!("{}", output);
 
-            todo!("Need to impl comparing observed parsing diagnostics to expected");
-
-            // assert_eq!(
-            //     strip_ansi_escapes::strip_str(&output[..]),
-            //     expected_diag_msgs
-            // );
+            assert_eq!(
+                strip_ansi_escapes::strip_str(&output[..]),
+                expected_diag_msgs
+            );
         }
     }
 }
@@ -89,4 +87,71 @@ fn two_todos() {
             ),
         ]),
     )
+}
+
+#[test]
+fn simple_claim() {
+    run_parse(
+        "\
+(claim foo
+  Nat)",
+        vec![
+            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+            Token::new(TokenKind::Keyword(token::Keyword::Claim), Span::new(1, 6)),
+            Token::new(TokenKind::Identifier(String::from("foo")), Span::new(7, 10)),
+            Token::new(TokenKind::Keyword(token::Keyword::Nat), Span::new(14, 17)),
+            Token::new(TokenKind::CloseParen, Span::new(17, 18)),
+        ],
+        Program::new(vec![Declaration::new(
+            DeclarationKind::Claim(
+                Spanned::new(String::from("foo"), Span::new(7, 10)),
+                Expression::new(ExpressionKind::Nat, Span::new(14, 17)),
+            ),
+            Span::new(0, 18),
+        )]),
+    );
+}
+
+#[test]
+#[ignore = "FIXME: diagnostic is missing surrounding code"]
+fn claim_missing_trailing_closing_paren() {
+    run_parse_neg(
+        "\
+(claim foo
+  Nat",
+        vec![
+            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+            Token::new(TokenKind::Keyword(token::Keyword::Claim), Span::new(1, 6)),
+            Token::new(TokenKind::Identifier(String::from("foo")), Span::new(7, 10)),
+            Token::new(TokenKind::Keyword(token::Keyword::Nat), Span::new(14, 17)),
+        ],
+        "",
+    );
+}
+
+#[test]
+fn claim_missing_name() {
+    run_parse_neg(
+        "\
+(claim
+  Nat)",
+        vec![
+            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+            Token::new(TokenKind::Keyword(token::Keyword::Claim), Span::new(1, 6)),
+            Token::new(TokenKind::Keyword(token::Keyword::Nat), Span::new(9, 12)),
+            Token::new(TokenKind::CloseParen, Span::new(12, 13)),
+        ],
+        "\
+Error: expected name to be associated with `claim`
+   ╭─[ test_input:1:1 ]
+   │
+ 1 │ (claim
+   │  ──┬──  
+   │    ╰──── expected name to follow this
+ 2 │   Nat)
+   │   ─┬─  
+   │    ╰─── instead got Nat
+───╯
+",
+    );
 }

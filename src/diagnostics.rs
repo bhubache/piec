@@ -49,7 +49,7 @@ impl<'a> Diagnostic<'a> {
         for ann in self.annotations.iter() {
             report = report.with_label(
                 Label::new((self.file.file_path.clone(), Range::from(ann.span)))
-                    .with_message(ann.message),
+                    .with_message(ann.message.clone()),
             )
         }
         report
@@ -68,11 +68,14 @@ impl<'a> Diagnostic<'a> {
 #[derive(Debug)]
 pub struct Annotation {
     span: Span,
-    message: &'static str,
+    message: String,
 }
 
 impl Annotation {
-    pub fn new(span: Span, message: &'static str) -> Self {
-        Self { span, message }
+    pub fn new(span: Span, message: impl Into<String>) -> Self {
+        Self {
+            span,
+            message: message.into(),
+        }
     }
 }
