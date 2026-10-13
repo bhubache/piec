@@ -174,7 +174,7 @@ impl<'a> Parser<'a> {
             None => {
                 self.save_diagnostic(
                     "unexpected EOF",
-                    prev_span,
+                    Span::new(prev_span.end, prev_span.end),
                     vec![Annotation::new(
                         Span::new(prev_span.end, prev_span.end),
                         "missing identifier",

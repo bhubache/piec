@@ -112,6 +112,27 @@ fn simple_claim() {
     );
 }
 
+#[test]
+fn eof_seen_when_expecting_identifier() {
+    run_parse_neg(
+        "\
+(claim",
+        vec![
+            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+            Token::new(TokenKind::Keyword(token::Keyword::Claim), Span::new(1, 6)),
+        ],
+        "\
+Error: unexpected EOF
+   ╭─[ test_input:1:7 ]
+   │
+ 1 │ (claim
+   │       │ 
+   │       ╰─ missing identifier
+───╯
+",
+    );
+}
+
 // TODO: Figure out how to best include additional context such as that the missing token is part
 // of a `claim` declaration
 #[test]
@@ -133,6 +154,31 @@ Error: unexpected EOF
  2 │   Nat
    │      │ 
    │      ╰─ expected `)`
+───╯
+",
+    );
+}
+
+#[test]
+fn claim_has_wrong_token_where_closing_paren_should_be() {
+    run_parse_neg(
+        "\
+(claim foo
+  Nat (",
+        vec![
+            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+            Token::new(TokenKind::Keyword(token::Keyword::Claim), Span::new(1, 6)),
+            Token::new(TokenKind::Identifier(String::from("foo")), Span::new(7, 10)),
+            Token::new(TokenKind::Keyword(token::Keyword::Nat), Span::new(13, 16)),
+            Token::new(TokenKind::OpenParen, Span::new(17, 18)),
+        ],
+        "\
+Error: expected `)`, got `(`
+   ╭─[ test_input:2:7 ]
+   │
+ 2 │   Nat (
+   │       ┬  
+   │       ╰── instead got `(`
 ───╯
 ",
     );
