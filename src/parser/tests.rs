@@ -112,8 +112,9 @@ fn simple_claim() {
     );
 }
 
+// TODO: Figure out how to best include additional context such as that the missing token is part
+// of a `claim` declaration
 #[test]
-#[ignore = "FIXME: diagnostic is missing surrounding code"]
 fn claim_missing_trailing_closing_paren() {
     run_parse_neg(
         "\
@@ -123,9 +124,17 @@ fn claim_missing_trailing_closing_paren() {
             Token::new(TokenKind::OpenParen, Span::new(0, 1)),
             Token::new(TokenKind::Keyword(token::Keyword::Claim), Span::new(1, 6)),
             Token::new(TokenKind::Identifier(String::from("foo")), Span::new(7, 10)),
-            Token::new(TokenKind::Keyword(token::Keyword::Nat), Span::new(14, 17)),
+            Token::new(TokenKind::Keyword(token::Keyword::Nat), Span::new(13, 16)),
         ],
-        "",
+        "\
+Error: unexpected EOF
+   ╭─[ test_input:2:3 ]
+   │
+ 2 │   Nat
+   │      │ 
+   │      ╰─ expected )
+───╯
+",
     );
 }
 

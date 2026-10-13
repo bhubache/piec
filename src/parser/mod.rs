@@ -139,12 +139,12 @@ impl<'a> Parser<'a> {
     fn expect(&mut self, token_kind: TokenKind) -> Result<&Token, Recoverable> {
         match self.step() {
             None => {
-                let prev_span = self.peek_prev().span;
+                let last_span = self.peek_prev().span;
                 self.save_diagnostic(
                     "unexpected EOF",
-                    prev_span,
+                    last_span,
                     vec![Annotation::new(
-                        Span::new(prev_span.end, prev_span.end),
+                        Span::new(last_span.end, last_span.end),
                         format!("expected {}", token_kind),
                     )],
                 );
