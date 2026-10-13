@@ -55,9 +55,7 @@ impl<'a> Parser<'a> {
     fn parse_declaration(&mut self) -> Result<ast::Declaration, Recoverable> {
         let start_span = self.tokens[self.curr_index].span;
 
-        if self.check_first(TokenKind::OpenParen)
-            && self.check_second(TokenKind::Keyword(Keyword::Claim))
-        {
+        if self.check_first(TokenKind::OpenParen) && self.check_second(TokenKind::Keyword(Keyword::Claim)) {
             self.step().unwrap();
             self.step().unwrap();
             let ident = self.expect_identifier()?;
@@ -68,15 +66,11 @@ impl<'a> Parser<'a> {
                 ast::DeclarationKind::Claim(ident, expr),
                 Span::new(start_span.start, last_token.span.end),
             ))
-        } else if self.check_first(TokenKind::OpenParen)
-            && self.check_second(TokenKind::Keyword(Keyword::Define))
-        {
+        } else if self.check_first(TokenKind::OpenParen) && self.check_second(TokenKind::Keyword(Keyword::Define)) {
             self.step();
             self.step();
             todo!();
-        } else if self.check_first(TokenKind::OpenParen)
-            && self.check_second(TokenKind::Keyword(Keyword::CheckSame))
-        {
+        } else if self.check_first(TokenKind::OpenParen) && self.check_second(TokenKind::Keyword(Keyword::CheckSame)) {
             self.step();
             self.step();
             todo!();
@@ -84,10 +78,7 @@ impl<'a> Parser<'a> {
             // FIXME: Shouldn't unwrap here
             let expr = self.parse_expr().unwrap();
             let span = expr.span;
-            Ok(ast::Declaration::new(
-                ast::DeclarationKind::Expr(expr),
-                span,
-            ))
+            Ok(ast::Declaration::new(ast::DeclarationKind::Expr(expr), span))
         }
     }
 
@@ -192,10 +183,7 @@ impl<'a> Parser<'a> {
                         tok_copy.span,
                         vec![
                             Annotation::new(prev_span, "expected name to follow this"),
-                            Annotation::new(
-                                tok_copy.span,
-                                format!("instead got `{}`", tok_copy.kind),
-                            ),
+                            Annotation::new(tok_copy.span, format!("instead got `{}`", tok_copy.kind)),
                         ],
                     );
 
@@ -205,12 +193,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn save_diagnostic(
-        &mut self,
-        message: impl Into<String>,
-        span: Span,
-        annotations: Vec<Annotation>,
-    ) {
+    fn save_diagnostic(&mut self, message: impl Into<String>, span: Span, annotations: Vec<Annotation>) {
         let diag = Diagnostic::new(self.file, message, span, annotations);
         self.diagnostics.push(diag);
     }

@@ -86,24 +86,9 @@ pub enum ExpressionKind {
     IndEq(Box<Expression>, Box<Expression>, Box<Expression>),
 
     // Quaternary
-    IndEither(
-        Box<Expression>,
-        Box<Expression>,
-        Box<Expression>,
-        Box<Expression>,
-    ),
-    IndNat(
-        Box<Expression>,
-        Box<Expression>,
-        Box<Expression>,
-        Box<Expression>,
-    ),
-    IndList(
-        Box<Expression>,
-        Box<Expression>,
-        Box<Expression>,
-        Box<Expression>,
-    ),
+    IndEither(Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>),
+    IndNat(Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>),
+    IndList(Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>),
 
     // Quinary
     IndVec(

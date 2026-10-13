@@ -22,12 +22,7 @@ pub struct Diagnostic<'a> {
 }
 
 impl<'a> Diagnostic<'a> {
-    pub fn new(
-        file: &'a SourceFile,
-        message: impl Into<String>,
-        span: Span,
-        annotations: Vec<Annotation>,
-    ) -> Self {
+    pub fn new(file: &'a SourceFile, message: impl Into<String>, span: Span, annotations: Vec<Annotation>) -> Self {
         Self {
             file,
             message: message.into(),
@@ -41,24 +36,17 @@ impl<'a> Diagnostic<'a> {
     }
 
     pub fn write_to<W: Write>(&self, dst: W) {
-        let mut report = Report::build(
-            ReportKind::Error,
-            (self.file.file_path.clone(), Range::from(self.span)),
-        )
-        .with_message(self.message.clone());
+        let mut report = Report::build(ReportKind::Error, (self.file.file_path.clone(), Range::from(self.span)))
+            .with_message(self.message.clone());
         for ann in self.annotations.iter() {
             report = report.with_label(
-                Label::new((self.file.file_path.clone(), Range::from(ann.span)))
-                    .with_message(ann.message.clone()),
+                Label::new((self.file.file_path.clone(), Range::from(ann.span))).with_message(ann.message.clone()),
             )
         }
         report
             .finish()
             .write(
-                (
-                    self.file.file_path.clone(),
-                    Source::from(self.file.source.clone()),
-                ),
+                (self.file.file_path.clone(), Source::from(self.file.source.clone())),
                 dst,
             )
             .unwrap();

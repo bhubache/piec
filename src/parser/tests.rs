@@ -40,10 +40,7 @@ fn run_parse_neg(source: &str, tokens: Vec<Token>, expected_diag_msgs: &str) {
 
             println!("{}", output);
 
-            assert_eq!(
-                strip_ansi_escapes::strip_str(&output[..]),
-                expected_diag_msgs
-            );
+            assert_eq!(strip_ansi_escapes::strip_str(&output[..]), expected_diag_msgs);
         }
     }
 }
@@ -57,10 +54,7 @@ fn no_tokens() {
 fn just_todo() {
     run_parse(
         "TODO",
-        vec![Token::new(
-            TokenKind::Keyword(token::Keyword::Todo),
-            Span::new(0, 4),
-        )],
+        vec![Token::new(TokenKind::Keyword(token::Keyword::Todo), Span::new(0, 4))],
         Program::new(vec![Declaration::new(
             DeclarationKind::Expr(Expression::new(ExpressionKind::Todo, Span::new(0, 4))),
             Span::new(0, 4),

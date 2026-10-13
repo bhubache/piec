@@ -58,10 +58,7 @@ impl Compiler {
                     diag.report();
                 }
 
-                panic!(
-                    "unable to parse due to {} above error(s)",
-                    diagnostics.len()
-                );
+                panic!("unable to parse due to {} above error(s)", diagnostics.len());
             }
         };
 

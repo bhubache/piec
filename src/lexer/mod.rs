@@ -98,29 +98,28 @@ impl<'a> Lexer<'a> {
                     '|' => {
                         self.eat_rest_of_pipe_ident()?;
                     }
-                    '#' => {
-                        match self.peek_first() {
-                            Some(next_char) => {
-                                if next_char == '%' {
-                                    self.step();
-                                } else {
-                                    let mut span = self.curr_token_span();
-                                    span.start += 1;
-                                    span.end += 1;
-                                    self.save_diagnostic(
+                    '#' => match self.peek_first() {
+                        Some(next_char) => {
+                            if next_char == '%' {
+                                self.step();
+                            } else {
+                                let mut span = self.curr_token_span();
+                                span.start += 1;
+                                span.end += 1;
+                                self.save_diagnostic(
                                         format!("Unexpected character `{}` following `#`", next_char),
                                         vec![Annotation::new(span, "expected this character to be `%`, indicating an identifier or the start of an identifier")],
                                     );
-                                }
-                            }
-                            None => {
-                                self.save_diagnostic(
-                                    "EOF following `#`",
-                                    vec![Annotation::new(self.curr_token_span(), "expected a `%` to follow this to complete, or start, an identifier")],
-                                )
                             }
                         }
-                    }
+                        None => self.save_diagnostic(
+                            "EOF following `#`",
+                            vec![Annotation::new(
+                                self.curr_token_span(),
+                                "expected a `%` to follow this to complete, or start, an identifier",
+                            )],
+                        ),
+                    },
                     _ => {
                         if is_ident_delimiter(character) || matches!(character, '\\' | '|' | '#') {
                             self.save_diagnostic(
@@ -172,7 +171,10 @@ impl<'a> Lexer<'a> {
         self.step().ok_or_else(|| {
             self.save_diagnostic(
                 r"EOF following `\`",
-                vec![Annotation::new(self.curr_token_span(), "expected any single character to follow this to complete, or start, an identifier")],
+                vec![Annotation::new(
+                    self.curr_token_span(),
+                    "expected any single character to follow this to complete, or start, an identifier",
+                )],
             );
 
             Recoverable::No

@@ -17,7 +17,10 @@ fn arb_token_kind() -> impl Strategy<Value = token::TokenKind> {
             )
             .is_err())
             // TODO: Is there a way to derive this from `token::Literal`?
-            .prop_filter("must not be a literal", |ident| ident.to_string().parse::<usize>().is_err()),
+            .prop_filter("must not be a literal", |ident| ident
+                .to_string()
+                .parse::<usize>()
+                .is_err()),
         arb_keyword().prop_map(TokenKind::Keyword),
         arb_literal().prop_map(TokenKind::Literal),
     ]
@@ -94,10 +97,7 @@ fn lex_helper_neg(source: &str, expected_diag_msgs: &str) {
 
             println!("{}", output);
 
-            assert_eq!(
-                strip_ansi_escapes::strip_str(&output[..]),
-                expected_diag_msgs
-            );
+            assert_eq!(strip_ansi_escapes::strip_str(&output[..]), expected_diag_msgs);
         }
     }
 }
@@ -177,10 +177,7 @@ fn straightforward_the() {
 fn ident_starting_with_backslash() {
     lex_helper(
         r"\'d",
-        vec![Token::new(
-            TokenKind::Identifier(String::from(r"\'d")),
-            Span::new(0, 3),
-        )],
+        vec![Token::new(TokenKind::Identifier(String::from(r"\'d")), Span::new(0, 3))],
     );
 }
 
