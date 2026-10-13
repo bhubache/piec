@@ -98,7 +98,12 @@ pub enum ExpressionKind {
         Box<Expression>,
         Box<Expression>,
     ),
-    IndList(Box<Expression>, Box<Expression>, Box<Expression>),
+    IndList(
+        Box<Expression>,
+        Box<Expression>,
+        Box<Expression>,
+        Box<Expression>,
+    ),
 
     // Quinary
     IndVec(
