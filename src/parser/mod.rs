@@ -145,7 +145,7 @@ impl<'a> Parser<'a> {
                     last_span,
                     vec![Annotation::new(
                         Span::new(last_span.end, last_span.end),
-                        format!("expected {}", token_kind),
+                        format!("expected `{}`", token_kind),
                     )],
                 );
 
@@ -155,11 +155,11 @@ impl<'a> Parser<'a> {
             Some(bad_token) => {
                 let bad_tok_copy = bad_token.clone();
                 self.save_diagnostic(
-                    format!("expected {}, got {}", token_kind, bad_tok_copy.kind),
+                    format!("expected `{}`, got `{}`", token_kind, bad_tok_copy.kind),
                     bad_tok_copy.span,
                     vec![Annotation::new(
                         bad_tok_copy.span,
-                        format!("instead got {}", bad_tok_copy.kind),
+                        format!("instead got `{}`", bad_tok_copy.kind),
                     )],
                 );
 
@@ -194,7 +194,7 @@ impl<'a> Parser<'a> {
                             Annotation::new(prev_span, "expected name to follow this"),
                             Annotation::new(
                                 tok_copy.span,
-                                format!("instead got {}", tok_copy.kind),
+                                format!("instead got `{}`", tok_copy.kind),
                             ),
                         ],
                     );

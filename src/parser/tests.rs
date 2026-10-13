@@ -132,7 +132,7 @@ Error: unexpected EOF
    │
  2 │   Nat
    │      │ 
-   │      ╰─ expected )
+   │      ╰─ expected `)`
 ───╯
 ",
     );
@@ -159,7 +159,7 @@ Error: missing identifier
    │    ╰──── expected name to follow this
  2 │   Nat)
    │   ─┬─  
-   │    ╰─── instead got Nat
+   │    ╰─── instead got `Nat`
 ───╯
 ",
     );
