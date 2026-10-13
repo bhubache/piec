@@ -142,8 +142,8 @@ fn claim_missing_name() {
             Token::new(TokenKind::CloseParen, Span::new(12, 13)),
         ],
         "\
-Error: expected name to be associated with `claim`
-   ╭─[ test_input:1:1 ]
+Error: missing identifier
+   ╭─[ test_input:2:3 ]
    │
  1 │ (claim
    │  ──┬──  

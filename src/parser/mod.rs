@@ -59,51 +59,10 @@ impl<'a> Parser<'a> {
             && self.check_second(TokenKind::Keyword(Keyword::Claim))
         {
             self.step().unwrap();
-            let claim_token_span = self.step().unwrap().span;
-            let ident = self
-                .expect_identifier()
-                .map_err(|maybe_token| match maybe_token {
-                    Some(bad_token) => {
-                        self.save_diagnostic(
-                            "expected name to be associated with `claim`",
-                            Span::new(start_span.start, bad_token.span.end),
-                            vec![
-                                Annotation::new(claim_token_span, "expected name to follow this"),
-                                Annotation::new(
-                                    bad_token.span,
-                                    format!("instead got {}", bad_token.kind),
-                                ),
-                            ],
-                        );
-
-                        Recoverable::Yes
-                    }
-                    None => Recoverable::No,
-                })?;
+            self.step().unwrap();
+            let ident = self.expect_identifier()?;
             let expr = self.parse_expr()?;
-            let last_token = match self.expect(TokenKind::CloseParen) {
-                Ok(token) => token,
-                Err(maybe_bad_token) => {
-                    let msg = "expected `)` to finish `claim`";
-
-                    let (span, annotations) = match maybe_bad_token {
-                        Some(bad_token) => (
-                            Span::new(start_span.start, bad_token.span.end),
-                            vec![Annotation::new(
-                                bad_token.span,
-                                format!("instead got {}", bad_token.kind),
-                            )],
-                        ),
-                        None => (
-                            Span::new(start_span.start, expr.span.end),
-                            vec![Annotation::new(expr.span, "instead got EOF")],
-                        ),
-                    };
-                    self.save_diagnostic(msg, span, annotations);
-
-                    return Err(Recoverable::Yes);
-                }
-            };
+            let last_token = self.expect(TokenKind::CloseParen)?;
 
             Ok(ast::Declaration::new(
                 ast::DeclarationKind::Claim(ident, expr),
@@ -140,13 +99,24 @@ impl<'a> Parser<'a> {
             Ok(ast::Expression::new(ast::ExpressionKind::Todo, tok.span))
         } else {
             if self.check_first(TokenKind::Keyword(Keyword::Nat)) {
-                let tok = self.step().ok_or(Recoverable::No)?;
+                let tok = self
+                    .step()
+                    .expect("This should never fail because we checked before stepping");
 
                 Ok(ast::Expression::new(ast::ExpressionKind::Nat, tok.span))
             } else {
+                let prev_span = self.peek_prev().span;
+                self.save_diagnostic("unexpected EOF", prev_span, vec![]);
+
                 Err(Recoverable::No)
             }
         }
+    }
+
+    fn peek_prev(&self) -> &Token {
+        self.tokens
+            .get(self.curr_index - 1)
+            .expect("This should never be called when `self.curr_index` is 0")
     }
 
     fn check_first(&self, token: TokenKind) -> bool {
@@ -159,25 +129,79 @@ impl<'a> Parser<'a> {
 
     fn step(&mut self) -> Option<&Token> {
         let ret_token = self.tokens.get(self.curr_index);
-        self.curr_index += 1;
+        if ret_token.is_some() {
+            self.curr_index += 1;
+        }
 
         ret_token
     }
 
-    fn expect(&mut self, token_kind: TokenKind) -> Result<&Token, Option<Token>> {
-        let token = self.step().ok_or(None)?;
-        if token.kind == token_kind {
-            Ok(token)
-        } else {
-            Err(Some(token.clone()))
+    fn expect(&mut self, token_kind: TokenKind) -> Result<&Token, Recoverable> {
+        match self.step() {
+            None => {
+                let prev_span = self.peek_prev().span;
+                self.save_diagnostic(
+                    "unexpected EOF",
+                    prev_span,
+                    vec![Annotation::new(
+                        Span::new(prev_span.end, prev_span.end),
+                        format!("expected {}", token_kind),
+                    )],
+                );
+
+                Err(Recoverable::No)
+            }
+            Some(token) if token.kind == token_kind => Ok(token),
+            Some(bad_token) => {
+                let bad_tok_copy = bad_token.clone();
+                self.save_diagnostic(
+                    format!("expected {}, got {}", token_kind, bad_tok_copy.kind),
+                    bad_tok_copy.span,
+                    vec![Annotation::new(
+                        bad_tok_copy.span,
+                        format!("instead got {}", bad_tok_copy.kind),
+                    )],
+                );
+
+                Err(Recoverable::Yes)
+            }
         }
     }
 
-    fn expect_identifier(&mut self) -> Result<Spanned<String>, Option<Token>> {
-        let token = self.step().ok_or(None)?;
-        match token.kind {
-            TokenKind::Identifier(ref ident) => Ok(Spanned::new(ident.to_string(), token.span)),
-            _ => Err(Some(token.clone())),
+    fn expect_identifier(&mut self) -> Result<Spanned<String>, Recoverable> {
+        let prev_span = self.peek_prev().span;
+        match self.step() {
+            None => {
+                self.save_diagnostic(
+                    "unexpected EOF",
+                    prev_span,
+                    vec![Annotation::new(
+                        Span::new(prev_span.end, prev_span.end),
+                        "missing identifier",
+                    )],
+                );
+
+                Err(Recoverable::No)
+            }
+            Some(token) => match token.kind {
+                TokenKind::Identifier(ref ident) => Ok(Spanned::new(ident.to_string(), token.span)),
+                _ => {
+                    let tok_copy = token.clone();
+                    self.save_diagnostic(
+                        "missing identifier",
+                        tok_copy.span,
+                        vec![
+                            Annotation::new(prev_span, "expected name to follow this"),
+                            Annotation::new(
+                                tok_copy.span,
+                                format!("instead got {}", tok_copy.kind),
+                            ),
+                        ],
+                    );
+
+                    Err(Recoverable::Yes)
+                }
+            },
         }
     }
 
