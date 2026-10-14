@@ -204,3 +204,66 @@ Error: missing identifier
 ",
     );
 }
+
+#[test]
+fn simple_lambda() {
+    run_parse(
+        "\
+(λ (fst snd)
+  (cons fst snd))",
+        vec![
+            Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+            Token::new(TokenKind::Keyword(Keyword::LambdaSymbol), Span::new(1, 2)),
+            Token::new(TokenKind::OpenParen, Span::new(3, 4)),
+            Token::new(TokenKind::Identifier(String::from("fst")), Span::new(4, 7)),
+            Token::new(TokenKind::Identifier(String::from("snd")), Span::new(8, 11)),
+            Token::new(TokenKind::CloseParen, Span::new(11, 12)),
+            Token::new(TokenKind::OpenParen, Span::new(15, 16)),
+            Token::new(TokenKind::Keyword(Keyword::Cons), Span::new(16, 20)),
+            Token::new(TokenKind::Identifier(String::from("fst")), Span::new(21, 24)),
+            Token::new(TokenKind::Identifier(String::from("snd")), Span::new(25, 28)),
+            Token::new(TokenKind::CloseParen, Span::new(28, 29)),
+            Token::new(TokenKind::CloseParen, Span::new(29, 30)),
+        ],
+        Program::new(vec![Declaration::new(
+            DeclarationKind::Expr(Expression::new(
+                ExpressionKind::Lambda(
+                    vec![
+                        Spanned::new(String::from("fst"), Span::new(4, 7)),
+                        Spanned::new(String::from("snd"), Span::new(8, 11)),
+                    ],
+                    Box::new(Expression::new(
+                        ExpressionKind::Cons(
+                            Box::new(Expression::new(
+                                ExpressionKind::Variable(String::from("fst")),
+                                Span::new(21, 24),
+                            )),
+                            Box::new(Expression::new(
+                                ExpressionKind::Variable(String::from("snd")),
+                                Span::new(25, 28),
+                            )),
+                        ),
+                        Span::new(16, 28),
+                    )),
+                ),
+                Span::new(0, 30),
+            )),
+            Span::new(0, 30),
+        )]),
+    );
+}
+
+// #[test]
+// fn cons_missing_second_argument() {
+//     run_parse_neg(
+//         "\
+// (cons 1 )",
+//         vec![
+//             Token::new(TokenKind::OpenParen, Span::new(0, 1)),
+//             Token::new(TokenKind::Keyword(Keyword::Cons), Span::new(1, 5)),
+//             Token::new(TokenKind::Literal(Literal::Nat(1)), Span::new(6, 7)),
+//             Token::new(TokenKind::CloseParen, Span::new(8, 9)),
+//         ],
+//         ""
+//     )
+// }

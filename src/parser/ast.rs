@@ -1,6 +1,6 @@
 use crate::span::Span;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Spanned<T> {
     pub node: T,
     pub span: Span,
@@ -16,7 +16,7 @@ pub type Expression = Spanned<ExpressionKind>;
 
 #[derive(Debug, PartialEq)]
 pub struct Program {
-    decls: Vec<Declaration>,
+    pub decls: Vec<Declaration>,
 }
 
 impl Program {
@@ -35,7 +35,7 @@ pub enum DeclarationKind {
 
 pub type Declaration = Spanned<DeclarationKind>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ExpressionKind {
     // Zero arguments
     Universe,

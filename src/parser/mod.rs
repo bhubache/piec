@@ -1,8 +1,11 @@
 use crate::diagnostics::Annotation;
 use crate::diagnostics::Diagnostic;
 use crate::lexer::token::Keyword;
+use crate::lexer::token::Literal;
 use crate::lexer::token::Token;
 use crate::lexer::token::TokenKind;
+use crate::parser::ast::Expression;
+use crate::parser::ast::ExpressionKind;
 use crate::parser::ast::Spanned;
 use crate::source::SourceFile;
 use crate::span::Span;
@@ -11,6 +14,17 @@ mod ast;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod property_based_tests;
+
+pub type UnaryExprKindCons = fn(Box<Expression>) -> ExpressionKind;
+pub type BinaryExprKindCons = fn(Box<Expression>, Box<Expression>) -> ExpressionKind;
+pub type TernaryExprKindCons = fn(Box<Expression>, Box<Expression>, Box<Expression>) -> ExpressionKind;
+pub type QuaternaryExprKindCons =
+    fn(Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>) -> ExpressionKind;
+pub type QuinaryExprKindCons =
+    fn(Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>) -> ExpressionKind;
 
 pub struct Parser<'a> {
     file: &'a SourceFile,
@@ -83,25 +97,91 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Result<ast::Expression, Recoverable> {
-        if self.check_first(TokenKind::Keyword(Keyword::Todo)) {
-            let tok = &self.tokens[self.curr_index];
-            self.curr_index += 1;
+        // TODO: Shouldn't unwrap
+        let token = self.step().unwrap();
 
-            Ok(ast::Expression::new(ast::ExpressionKind::Todo, tok.span))
-        } else {
-            if self.check_first(TokenKind::Keyword(Keyword::Nat)) {
-                let tok = self
-                    .step()
-                    .expect("This should never fail because we checked before stepping");
-
-                Ok(ast::Expression::new(ast::ExpressionKind::Nat, tok.span))
-            } else {
-                let prev_span = self.peek_prev().span;
-                self.save_diagnostic("unexpected EOF", prev_span, vec![]);
-
-                Err(Recoverable::No)
+        let expr_span_start = token.span.start;
+        let expr_kind = match token.kind {
+            TokenKind::Keyword(Keyword::Universe) => ast::ExpressionKind::Universe,
+            TokenKind::Keyword(Keyword::Nat) => ast::ExpressionKind::Nat,
+            TokenKind::Keyword(Keyword::Zero) => ast::ExpressionKind::Zero,
+            TokenKind::Keyword(Keyword::Atom) => ast::ExpressionKind::Atom,
+            TokenKind::Keyword(Keyword::Trivial) => ast::ExpressionKind::Trivial,
+            TokenKind::Keyword(Keyword::Sole) => ast::ExpressionKind::Sole,
+            TokenKind::Keyword(Keyword::Nil) => ast::ExpressionKind::Nil,
+            TokenKind::Keyword(Keyword::Absurd) => ast::ExpressionKind::Absurd,
+            TokenKind::Keyword(Keyword::VecNil) => ast::ExpressionKind::Vecnil,
+            TokenKind::Keyword(Keyword::Todo) => ast::ExpressionKind::Todo,
+            TokenKind::Literal(Literal::Nat(value)) => ast::ExpressionKind::NatLiteral(value),
+            TokenKind::Atom(ref value) => ast::ExpressionKind::Quote(value.to_string()),
+            TokenKind::Keyword(Keyword::Add1) => self.parse_unary(ExpressionKind::Add1)?,
+            TokenKind::Keyword(Keyword::Car) => self.parse_unary(ExpressionKind::Car)?,
+            TokenKind::Keyword(Keyword::Cdr) => self.parse_unary(ExpressionKind::Cdr)?,
+            TokenKind::Keyword(Keyword::Same) => self.parse_unary(ExpressionKind::Same)?,
+            TokenKind::Keyword(Keyword::Symm) => self.parse_unary(ExpressionKind::Symm)?,
+            TokenKind::Keyword(Keyword::Left) => self.parse_unary(ExpressionKind::Left)?,
+            TokenKind::Keyword(Keyword::Right) => self.parse_unary(ExpressionKind::Right)?,
+            TokenKind::Keyword(Keyword::List) => self.parse_unary(ExpressionKind::List)?,
+            TokenKind::Keyword(Keyword::Cong) => self.parse_binary(ExpressionKind::Cong)?,
+            TokenKind::Keyword(Keyword::Trans) => self.parse_binary(ExpressionKind::Trans)?,
+            TokenKind::Keyword(Keyword::IndAbsurd) => self.parse_binary(ExpressionKind::IndAbsurd)?,
+            TokenKind::Keyword(Keyword::The) => self.parse_binary(ExpressionKind::The)?,
+            TokenKind::Keyword(Keyword::Cons) => self.parse_binary(ExpressionKind::Cons)?,
+            TokenKind::Keyword(Keyword::Pair) => self.parse_binary(ExpressionKind::Pair)?,
+            TokenKind::Keyword(Keyword::VecCons) => self.parse_binary(ExpressionKind::VecCons)?,
+            TokenKind::Keyword(Keyword::ListCons) => self.parse_binary(ExpressionKind::ListCons)?,
+            TokenKind::Keyword(Keyword::Either) => self.parse_binary(ExpressionKind::Either)?,
+            TokenKind::Keyword(Keyword::Vec) => self.parse_binary(ExpressionKind::Vec)?,
+            TokenKind::Keyword(Keyword::Replace) => self.parse_ternary(ExpressionKind::Replace)?,
+            TokenKind::Keyword(Keyword::Eq) => self.parse_ternary(ExpressionKind::Eq)?,
+            TokenKind::Keyword(Keyword::RecList) => self.parse_ternary(ExpressionKind::RecList)?,
+            TokenKind::Keyword(Keyword::RecNat) => self.parse_ternary(ExpressionKind::RecNat)?,
+            TokenKind::Keyword(Keyword::IterNat) => self.parse_ternary(ExpressionKind::IterNat)?,
+            TokenKind::Keyword(Keyword::WhichNat) => self.parse_ternary(ExpressionKind::WhichNat)?,
+            TokenKind::Keyword(Keyword::IndEq) => self.parse_ternary(ExpressionKind::IndEq)?,
+            TokenKind::Keyword(Keyword::IndEither) => self.parse_quaternary(ExpressionKind::IndEither)?,
+            TokenKind::Keyword(Keyword::IndNat) => self.parse_quaternary(ExpressionKind::IndNat)?,
+            TokenKind::Keyword(Keyword::IndList) => self.parse_quaternary(ExpressionKind::IndList)?,
+            TokenKind::Keyword(Keyword::IndVec) => self.parse_quinary(ExpressionKind::IndVec)?,
+            TokenKind::OpenParen => {
+                // TODO: Don't unwrap
+                let next_tok = self.step().unwrap();
+                match next_tok.kind {
+                    TokenKind::Keyword(Keyword::Lambda) | TokenKind::Keyword(Keyword::LambdaSymbol) => {
+                        self.parse_lambda()?
+                    }
+                    _ => todo!("remaining bindings aren't yet supported"),
+                }
             }
+            TokenKind::Identifier(ref ident) => ExpressionKind::Variable(ident.to_string()),
+            _ => todo!(),
+        };
+
+        Ok(ast::Expression::new(
+            expr_kind,
+            Span::new(expr_span_start, self.peek_prev().span.end),
+        ))
+    }
+
+    fn parse_lambda(&mut self) -> Result<ExpressionKind, Recoverable> {
+        self.expect(TokenKind::OpenParen)?;
+
+        let mut variables = Vec::new();
+        while !self.check_first(TokenKind::CloseParen) {
+            variables.push(self.expect_identifier()?);
         }
+
+        self.expect(TokenKind::CloseParen)?;
+        self.expect(TokenKind::OpenParen)?;
+        let expr = self.parse_expr()?;
+
+        // TODO: Should it be parse_expr's responsibility to get the closing paren for things like
+        // `cons`?
+        self.expect(TokenKind::CloseParen)?;
+
+        self.expect(TokenKind::CloseParen)?;
+
+        Ok(ExpressionKind::Lambda(variables, Box::new(expr)))
     }
 
     fn peek_prev(&self) -> &Token {
@@ -196,6 +276,41 @@ impl<'a> Parser<'a> {
     fn save_diagnostic(&mut self, message: impl Into<String>, span: Span, annotations: Vec<Annotation>) {
         let diag = Diagnostic::new(self.file, message, span, annotations);
         self.diagnostics.push(diag);
+    }
+
+    fn parse_unary(&mut self, cons: UnaryExprKindCons) -> Result<ExpressionKind, Recoverable> {
+        Ok(cons(Box::new(self.parse_expr()?)))
+    }
+
+    fn parse_binary(&mut self, cons: BinaryExprKindCons) -> Result<ExpressionKind, Recoverable> {
+        Ok(cons(Box::new(self.parse_expr()?), Box::new(self.parse_expr()?)))
+    }
+
+    fn parse_ternary(&mut self, cons: TernaryExprKindCons) -> Result<ExpressionKind, Recoverable> {
+        Ok(cons(
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+        ))
+    }
+
+    fn parse_quaternary(&mut self, cons: QuaternaryExprKindCons) -> Result<ExpressionKind, Recoverable> {
+        Ok(cons(
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+        ))
+    }
+
+    fn parse_quinary(&mut self, cons: QuinaryExprKindCons) -> Result<ExpressionKind, Recoverable> {
+        Ok(cons(
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+            Box::new(self.parse_expr()?),
+        ))
     }
 }
 

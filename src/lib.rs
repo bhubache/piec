@@ -7,3 +7,6 @@ mod lexer;
 mod parser;
 mod source;
 mod span;
+
+#[cfg(test)]
+mod test_utils;

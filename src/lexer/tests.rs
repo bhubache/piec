@@ -1,4 +1,5 @@
 use super::*;
+use crate::test_utils;
 use strum::IntoEnumIterator;
 
 use pretty_assertions::assert_eq;
@@ -10,17 +11,7 @@ fn arb_token_kind() -> impl Strategy<Value = token::TokenKind> {
         Just(TokenKind::CloseParen),
         Just(TokenKind::Comma),
         r"'[a-zA-Z\-]+".prop_map(TokenKind::Atom),
-        r#"((\\.|\|[^|]*\|)|([^",'`()\[\]{};\s\\|#])|(#%))((\\.|\|[^|]*\|)|([^",'`()\[\]{};\s\\|]))*"#
-            .prop_map(TokenKind::Identifier)
-            .prop_filter("must not be a keyword", |ident| token::Keyword::try_from(
-                ident.to_string().as_str()
-            )
-            .is_err())
-            // TODO: Is there a way to derive this from `token::Literal`?
-            .prop_filter("must not be a literal", |ident| ident
-                .to_string()
-                .parse::<usize>()
-                .is_err()),
+        test_utils::arb_ident().prop_map(TokenKind::Identifier),
         arb_keyword().prop_map(TokenKind::Keyword),
         arb_literal().prop_map(TokenKind::Literal),
     ]
