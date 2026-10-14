@@ -33,6 +33,142 @@ fn arb_expr() -> impl Strategy<Value = Expression> {
             inner
                 .clone()
                 .prop_map(|expr| Expression::new(ExpressionKind::Add1(Box::new(expr)), dummy_span())),
+            inner
+                .clone()
+                .prop_map(|expr| Expression::new(ExpressionKind::Car(Box::new(expr)), dummy_span())),
+            inner
+                .clone()
+                .prop_map(|expr| Expression::new(ExpressionKind::Cdr(Box::new(expr)), dummy_span())),
+            inner
+                .clone()
+                .prop_map(|expr| Expression::new(ExpressionKind::Same(Box::new(expr)), dummy_span())),
+            inner
+                .clone()
+                .prop_map(|expr| Expression::new(ExpressionKind::Symm(Box::new(expr)), dummy_span())),
+            inner
+                .clone()
+                .prop_map(|expr| Expression::new(ExpressionKind::Left(Box::new(expr)), dummy_span())),
+            inner
+                .clone()
+                .prop_map(|expr| Expression::new(ExpressionKind::Right(Box::new(expr)), dummy_span())),
+            inner
+                .clone()
+                .prop_map(|expr| Expression::new(ExpressionKind::List(Box::new(expr)), dummy_span())),
+            inner
+                .clone()
+                .prop_map(|expr| Expression::new(ExpressionKind::List(Box::new(expr)), dummy_span())),
+            (inner.clone(), inner.clone())
+                .prop_map(|(e1, e2)| Expression::new(ExpressionKind::Cong(Box::new(e1), Box::new(e2)), dummy_span())),
+            (inner.clone(), inner.clone())
+                .prop_map(|(e1, e2)| Expression::new(ExpressionKind::Trans(Box::new(e1), Box::new(e2)), dummy_span())),
+            (inner.clone(), inner.clone()).prop_map(|(e1, e2)| Expression::new(
+                ExpressionKind::IndAbsurd(Box::new(e1), Box::new(e2)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone())
+                .prop_map(|(e1, e2)| Expression::new(ExpressionKind::The(Box::new(e1), Box::new(e2)), dummy_span())),
+            (inner.clone(), inner.clone())
+                .prop_map(|(e1, e2)| Expression::new(ExpressionKind::Cons(Box::new(e1), Box::new(e2)), dummy_span())),
+            (inner.clone(), inner.clone())
+                .prop_map(|(e1, e2)| Expression::new(ExpressionKind::Pair(Box::new(e1), Box::new(e2)), dummy_span())),
+            (inner.clone(), inner.clone()).prop_map(|(e1, e2)| Expression::new(
+                ExpressionKind::VecCons(Box::new(e1), Box::new(e2)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone()).prop_map(|(e1, e2)| Expression::new(
+                ExpressionKind::ListCons(Box::new(e1), Box::new(e2)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone())
+                .prop_map(|(e1, e2)| Expression::new(ExpressionKind::Either(Box::new(e1), Box::new(e2)), dummy_span())),
+            (inner.clone(), inner.clone())
+                .prop_map(|(e1, e2)| Expression::new(ExpressionKind::Vec(Box::new(e1), Box::new(e2)), dummy_span())),
+            (inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3)| Expression::new(
+                ExpressionKind::Replace(Box::new(e1), Box::new(e2), Box::new(e3)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3)| Expression::new(
+                ExpressionKind::Eq(Box::new(e1), Box::new(e2), Box::new(e3)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3)| Expression::new(
+                ExpressionKind::RecList(Box::new(e1), Box::new(e2), Box::new(e3)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3)| Expression::new(
+                ExpressionKind::RecNat(Box::new(e1), Box::new(e2), Box::new(e3)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3)| Expression::new(
+                ExpressionKind::IterNat(Box::new(e1), Box::new(e2), Box::new(e3)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3)| Expression::new(
+                ExpressionKind::WhichNat(Box::new(e1), Box::new(e2), Box::new(e3)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3)| Expression::new(
+                ExpressionKind::IndEq(Box::new(e1), Box::new(e2), Box::new(e3)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3, e4)| Expression::new(
+                ExpressionKind::IndEither(Box::new(e1), Box::new(e2), Box::new(e3), Box::new(e4)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3, e4)| Expression::new(
+                ExpressionKind::IndNat(Box::new(e1), Box::new(e2), Box::new(e3), Box::new(e4)),
+                dummy_span()
+            )),
+            (inner.clone(), inner.clone(), inner.clone(), inner.clone()).prop_map(|(e1, e2, e3, e4)| Expression::new(
+                ExpressionKind::IndList(Box::new(e1), Box::new(e2), Box::new(e3), Box::new(e4)),
+                dummy_span()
+            )),
+            (
+                inner.clone(),
+                inner.clone(),
+                inner.clone(),
+                inner.clone(),
+                inner.clone()
+            )
+                .prop_map(|(e1, e2, e3, e4, e5)| Expression::new(
+                    ExpressionKind::IndVec(Box::new(e1), Box::new(e2), Box::new(e3), Box::new(e4), Box::new(e5)),
+                    dummy_span()
+                )),
+            (prop::collection::vec(test_utils::arb_ident(), 1..4), inner.clone()).prop_map(|(args, e2)| {
+                Expression::new(
+                    ExpressionKind::Lambda(
+                        args.into_iter().map(|arg| Spanned::new(arg, dummy_span())).collect(),
+                        Box::new(e2),
+                    ),
+                    dummy_span(),
+                )
+            }),
+            (
+                prop::collection::vec((test_utils::arb_ident(), inner.clone()), 1..4),
+                inner.clone()
+            )
+                .prop_map(|(args, e1)| Expression::new(
+                    ExpressionKind::Pi(
+                        args.into_iter()
+                            .map(|(val, ty)| (Spanned::new(val, dummy_span()), Box::new(ty)))
+                            .collect(),
+                        Box::new(e1)
+                    ),
+                    dummy_span()
+                ),),
+            (
+                prop::collection::vec((test_utils::arb_ident(), inner.clone()), 1..4),
+                inner.clone()
+            )
+                .prop_map(|(args, e1)| Expression::new(
+                    ExpressionKind::Sigma(
+                        args.into_iter()
+                            .map(|(val, ty)| (Spanned::new(val, dummy_span()), Box::new(ty)))
+                            .collect(),
+                        Box::new(e1)
+                    ),
+                    dummy_span()
+                ),),
         ]
     })
 }
@@ -41,7 +177,10 @@ fn arb_decl_kind() -> impl Strategy<Value = DeclarationKind> {
     prop_oneof![
         (test_utils::arb_ident(), arb_expr())
             .prop_map(|(name, expr)| DeclarationKind::Claim(Spanned::new(name, Span::new(0, 0)), expr)),
-        // (test_utils::arb_ident(), arb_expr()).prop_map(|(name, expr)| DeclarationKind::Define(Spanned::new(name, Span::new(0, 0)), expr)),
+        (test_utils::arb_ident(), arb_expr())
+            .prop_map(|(name, expr)| DeclarationKind::Define(Spanned::new(name, Span::new(0, 0)), expr)),
+        (arb_expr(), arb_expr(), arb_expr()).prop_map(|(e1, e2, e3)| DeclarationKind::SamenessCheck(e1, e2, e3)),
+        arb_expr().prop_map(DeclarationKind::Expr),
     ]
 }
 
@@ -242,6 +381,13 @@ impl ExpressionKind {
                 }
                 expr.clear_spans();
             }
+            Self::Pi(args, expr) | Self::Sigma(args, expr) => {
+                for (spanned_str, arg_ty) in args.iter_mut() {
+                    spanned_str.span = dummy_span();
+                    arg_ty.clear_spans();
+                }
+                expr.clear_spans();
+            }
             _ => (),
         }
     }
@@ -301,26 +447,48 @@ impl fmt::Display for ExpressionKind {
             Self::Either(e1, e2) => write!(f, "(Either {} {})", e1, e2),
             Self::Vec(e1, e2) => write!(f, "(Vec {} {})", e1, e2),
 
-            Self::Replace(e1, e2, e3) => write!(f, "replace {} {} {}", e1, e2, e3),
-            Self::Eq(e1, e2, e3) => write!(f, "= {} {} {}", e1, e2, e3),
-            Self::RecList(e1, e2, e3) => write!(f, "rec-List {} {} {}", e1, e2, e3),
-            Self::RecNat(e1, e2, e3) => write!(f, "rec-Nat {} {} {}", e1, e2, e3),
-            Self::IterNat(e1, e2, e3) => write!(f, "iter-Nat {} {} {}", e1, e2, e3),
-            Self::WhichNat(e1, e2, e3) => write!(f, "which-Nat {} {} {}", e1, e2, e3),
-            Self::IndEq(e1, e2, e3) => write!(f, "ind-= {} {} {}", e1, e2, e3),
+            Self::Replace(e1, e2, e3) => write!(f, "(replace {} {} {})", e1, e2, e3),
+            Self::Eq(e1, e2, e3) => write!(f, "(= {} {} {})", e1, e2, e3),
+            Self::RecList(e1, e2, e3) => write!(f, "(rec-List {} {} {})", e1, e2, e3),
+            Self::RecNat(e1, e2, e3) => write!(f, "(rec-Nat {} {} {})", e1, e2, e3),
+            Self::IterNat(e1, e2, e3) => write!(f, "(iter-Nat {} {} {})", e1, e2, e3),
+            Self::WhichNat(e1, e2, e3) => write!(f, "(which-Nat {} {} {})", e1, e2, e3),
+            Self::IndEq(e1, e2, e3) => write!(f, "(ind-= {} {} {})", e1, e2, e3),
 
-            Self::IndEither(e1, e2, e3, e4) => write!(f, "ind-Either {} {} {} {}", e1, e2, e3, e4),
-            Self::IndNat(e1, e2, e3, e4) => write!(f, "ind-Nat {} {} {} {}", e1, e2, e3, e4),
-            Self::IndList(e1, e2, e3, e4) => write!(f, "ind-List {} {} {} {}", e1, e2, e3, e4),
+            Self::IndEither(e1, e2, e3, e4) => write!(f, "(ind-Either {} {} {} {})", e1, e2, e3, e4),
+            Self::IndNat(e1, e2, e3, e4) => write!(f, "(ind-Nat {} {} {} {})", e1, e2, e3, e4),
+            Self::IndList(e1, e2, e3, e4) => write!(f, "(ind-List {} {} {} {})", e1, e2, e3, e4),
 
-            Self::IndVec(e1, e2, e3, e4, e5) => write!(f, "ind-Vec {} {} {} {} {}", e1, e2, e3, e4, e5),
+            Self::IndVec(e1, e2, e3, e4, e5) => write!(f, "(ind-Vec {} {} {} {} {})", e1, e2, e3, e4, e5),
 
             Self::Lambda(args, body) => {
                 write!(
                     f,
-                    "λ ({}) {}",
+                    "(λ ({}) {})",
                     args.iter()
                         .map(|spanned_str| spanned_str.node.clone())
+                        .collect::<Vec<String>>()
+                        .join(" "),
+                    body,
+                )
+            }
+            Self::Pi(args, body) => {
+                write!(
+                    f,
+                    "(Π ({}) {})",
+                    args.iter()
+                        .map(|(spanned_str, arg_ty)| format!("({} {})", spanned_str.node.clone(), arg_ty))
+                        .collect::<Vec<String>>()
+                        .join(" "),
+                    body,
+                )
+            }
+            Self::Sigma(args, body) => {
+                write!(
+                    f,
+                    "(Σ ({}) {})",
+                    args.iter()
+                        .map(|(spanned_str, arg_ty)| format!("({} {})", spanned_str.node.clone(), arg_ty))
                         .collect::<Vec<String>>()
                         .join(" "),
                     body,

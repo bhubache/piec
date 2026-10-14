@@ -243,7 +243,7 @@ fn simple_lambda() {
                                 Span::new(25, 28),
                             )),
                         ),
-                        Span::new(16, 28),
+                        Span::new(15, 29),
                     )),
                 ),
                 Span::new(0, 30),
@@ -252,18 +252,3 @@ fn simple_lambda() {
         )]),
     );
 }
-
-// #[test]
-// fn cons_missing_second_argument() {
-//     run_parse_neg(
-//         "\
-// (cons 1 )",
-//         vec![
-//             Token::new(TokenKind::OpenParen, Span::new(0, 1)),
-//             Token::new(TokenKind::Keyword(Keyword::Cons), Span::new(1, 5)),
-//             Token::new(TokenKind::Literal(Literal::Nat(1)), Span::new(6, 7)),
-//             Token::new(TokenKind::CloseParen, Span::new(8, 9)),
-//         ],
-//         ""
-//     )
-// }

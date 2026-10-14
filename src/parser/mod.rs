@@ -25,6 +25,7 @@ pub type QuaternaryExprKindCons =
     fn(Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>) -> ExpressionKind;
 pub type QuinaryExprKindCons =
     fn(Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>, Box<Expression>) -> ExpressionKind;
+pub type PiOrSigmaCons = fn(Vec<(Spanned<String>, Box<Expression>)>, Box<Expression>) -> ExpressionKind;
 
 pub struct Parser<'a> {
     file: &'a SourceFile,
@@ -81,16 +82,28 @@ impl<'a> Parser<'a> {
                 Span::new(start_span.start, last_token.span.end),
             ))
         } else if self.check_first(TokenKind::OpenParen) && self.check_second(TokenKind::Keyword(Keyword::Define)) {
-            self.step();
-            self.step();
-            todo!();
+            self.step().unwrap();
+            self.step().unwrap();
+            let ident = self.expect_identifier()?;
+            let expr = self.parse_expr()?;
+            let last_token = self.expect(TokenKind::CloseParen)?;
+
+            Ok(ast::Declaration::new(
+                ast::DeclarationKind::Define(ident, expr),
+                Span::new(start_span.start, last_token.span.end),
+            ))
         } else if self.check_first(TokenKind::OpenParen) && self.check_second(TokenKind::Keyword(Keyword::CheckSame)) {
-            self.step();
-            self.step();
-            todo!();
+            self.step().unwrap();
+            self.step().unwrap();
+            let (e1, e2, e3) = (self.parse_expr()?, self.parse_expr()?, self.parse_expr()?);
+            let last_token = self.expect(TokenKind::CloseParen)?;
+
+            Ok(ast::Declaration::new(
+                ast::DeclarationKind::SamenessCheck(e1, e2, e3),
+                Span::new(start_span.start, last_token.span.end),
+            ))
         } else {
-            // FIXME: Shouldn't unwrap here
-            let expr = self.parse_expr().unwrap();
+            let expr = self.parse_expr()?;
             let span = expr.span;
             Ok(ast::Declaration::new(ast::DeclarationKind::Expr(expr), span))
         }
@@ -99,8 +112,8 @@ impl<'a> Parser<'a> {
     fn parse_expr(&mut self) -> Result<ast::Expression, Recoverable> {
         // TODO: Shouldn't unwrap
         let token = self.step().unwrap();
-
         let expr_span_start = token.span.start;
+
         let expr_kind = match token.kind {
             TokenKind::Keyword(Keyword::Universe) => ast::ExpressionKind::Universe,
             TokenKind::Keyword(Keyword::Nat) => ast::ExpressionKind::Nat,
@@ -113,7 +126,36 @@ impl<'a> Parser<'a> {
             TokenKind::Keyword(Keyword::VecNil) => ast::ExpressionKind::Vecnil,
             TokenKind::Keyword(Keyword::Todo) => ast::ExpressionKind::Todo,
             TokenKind::Literal(Literal::Nat(value)) => ast::ExpressionKind::NatLiteral(value),
-            TokenKind::Atom(ref value) => ast::ExpressionKind::Quote(value.to_string()),
+            TokenKind::Atom(ref value) => ast::ExpressionKind::Quote(value.to_owned()),
+            TokenKind::Identifier(ref ident) => ExpressionKind::Variable(ident.to_owned()),
+            TokenKind::OpenParen => {
+                let expr_kind = self.parse_paren_expr()?;
+                self.expect(TokenKind::CloseParen)?;
+
+                expr_kind
+            }
+            _ => {
+                let kind = token.kind.clone();
+                self.save_diagnostic(
+                    format!("unexpected token kind `{}`", kind),
+                    Span::new(expr_span_start, self.peek_prev().span.end),
+                    vec![],
+                );
+
+                return Err(Recoverable::No);
+            }
+        };
+
+        Ok(ast::Expression::new(
+            expr_kind,
+            Span::new(expr_span_start, self.peek_prev().span.end),
+        ))
+    }
+
+    fn parse_paren_expr(&mut self) -> Result<ExpressionKind, Recoverable> {
+        // TODO: Don't just unwrap
+        let kind = self.step().unwrap().kind.clone();
+        let expr_kind = match kind {
             TokenKind::Keyword(Keyword::Add1) => self.parse_unary(ExpressionKind::Add1)?,
             TokenKind::Keyword(Keyword::Car) => self.parse_unary(ExpressionKind::Car)?,
             TokenKind::Keyword(Keyword::Cdr) => self.parse_unary(ExpressionKind::Cdr)?,
@@ -143,45 +185,50 @@ impl<'a> Parser<'a> {
             TokenKind::Keyword(Keyword::IndNat) => self.parse_quaternary(ExpressionKind::IndNat)?,
             TokenKind::Keyword(Keyword::IndList) => self.parse_quaternary(ExpressionKind::IndList)?,
             TokenKind::Keyword(Keyword::IndVec) => self.parse_quinary(ExpressionKind::IndVec)?,
-            TokenKind::OpenParen => {
-                // TODO: Don't unwrap
-                let next_tok = self.step().unwrap();
-                match next_tok.kind {
-                    TokenKind::Keyword(Keyword::Lambda) | TokenKind::Keyword(Keyword::LambdaSymbol) => {
-                        self.parse_lambda()?
-                    }
-                    _ => todo!("remaining bindings aren't yet supported"),
-                }
+            TokenKind::Keyword(Keyword::Lambda) | TokenKind::Keyword(Keyword::LambdaSymbol) => self.parse_lambda()?,
+            TokenKind::Keyword(Keyword::Pi) | TokenKind::Keyword(Keyword::GreekCapitalLetterPi) => {
+                self.parse_pi_or_sigma(ExpressionKind::Pi)?
             }
-            TokenKind::Identifier(ref ident) => ExpressionKind::Variable(ident.to_string()),
-            _ => todo!(),
+            TokenKind::Keyword(Keyword::Sigma) | TokenKind::Keyword(Keyword::SigmaSymbol) => {
+                self.parse_pi_or_sigma(ExpressionKind::Sigma)?
+            }
+            _ => unreachable!("All atoms have already been checked"),
         };
 
-        Ok(ast::Expression::new(
-            expr_kind,
-            Span::new(expr_span_start, self.peek_prev().span.end),
-        ))
+        Ok(expr_kind)
     }
 
     fn parse_lambda(&mut self) -> Result<ExpressionKind, Recoverable> {
         self.expect(TokenKind::OpenParen)?;
 
         let mut variables = Vec::new();
-        while !self.check_first(TokenKind::CloseParen) {
+        while !self.eat_token(TokenKind::CloseParen) {
             variables.push(self.expect_identifier()?);
         }
 
-        self.expect(TokenKind::CloseParen)?;
-        self.expect(TokenKind::OpenParen)?;
         let expr = self.parse_expr()?;
 
-        // TODO: Should it be parse_expr's responsibility to get the closing paren for things like
-        // `cons`?
-        self.expect(TokenKind::CloseParen)?;
-
-        self.expect(TokenKind::CloseParen)?;
-
         Ok(ExpressionKind::Lambda(variables, Box::new(expr)))
+    }
+
+    fn parse_pi_or_sigma(&mut self, cons: PiOrSigmaCons) -> Result<ExpressionKind, Recoverable> {
+        self.expect(TokenKind::OpenParen)?;
+
+        let mut var_ty_pairs = Vec::new();
+        while !self.eat_token(TokenKind::CloseParen) {
+            self.expect(TokenKind::OpenParen)?;
+
+            let ident = self.expect_identifier()?;
+            let ty = self.parse_expr()?;
+
+            self.expect(TokenKind::CloseParen)?;
+
+            var_ty_pairs.push((ident, Box::new(ty)));
+        }
+
+        let body = self.parse_expr()?;
+
+        Ok(cons(var_ty_pairs, Box::new(body)))
     }
 
     fn peek_prev(&self) -> &Token {
@@ -196,6 +243,15 @@ impl<'a> Parser<'a> {
 
     fn check_second(&self, token: TokenKind) -> bool {
         token == self.tokens[self.curr_index + 1].kind
+    }
+
+    fn eat_token(&mut self, token: TokenKind) -> bool {
+        let matches = self.check_first(token);
+        if matches {
+            self.step().expect("just checked that a token exists");
+        }
+
+        matches
     }
 
     fn step(&mut self) -> Option<&Token> {
